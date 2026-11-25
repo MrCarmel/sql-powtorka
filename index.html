@@ -6,6 +6,11 @@
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <title>SQL: JOIN i podzapytania</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SQL powtórka">
 <style>
 :root{
   --bg:#F2F2F7; --surface:#FFFFFF; --fill:rgba(118,118,128,.12); --code:#F2F2F7; --seg-sel:#FFFFFF;
@@ -863,7 +868,7 @@ const TASKS = [
 ];
 
 /* ---------- SQL engine (sql.js from CDN) ---------- */
-const CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/';
+const CDN = './'; // sql.js 1.10.3 is bundled next to this page so the app works offline
 let SQL = null, engine = null;
 const dbBytes = {};
 function loadEngine() {
@@ -881,8 +886,8 @@ function loadEngine() {
   }).catch(e => { engine = null; throw e; });
   return engine;
 }
-const ENGINE_FAIL = '<div class="fb bad"><strong>Nie udało się pobrać silnika SQL</strong>Sprawdź połączenie z internetem i spróbuj ponownie. Teoria, Lab (JOIN), Quiz i Ściąga działają bez niego.</div>';
-const ENGINE_LOADING = '<div class="fb info">Ładuję silnik SQL (ok. 1 MB, tylko za pierwszym razem)…</div>';
+const ENGINE_FAIL = '<div class="fb bad"><strong>Nie udało się uruchomić silnika SQL</strong>Otwórz aplikację raz z internetem, żeby zapisała się na telefonie, i spróbuj ponownie. Teoria, Lab (JOIN), Quiz i Ściąga działają bez niego.</div>';
+const ENGINE_LOADING = '<div class="fb info">Uruchamiam silnik SQL…</div>';
 function openDb(name) {
   const d = new SQL.Database(dbBytes[name]);
   const part = (a, b) => v => v == null ? null : (Number(String(v).slice(a, b)) || null);
@@ -1368,6 +1373,7 @@ window.addEventListener('hashchange', route);
 initTheory(); initLab(); initTasks(); initCheat(); route();
 // warm up the engine in the background so the first "Uruchom" is instant
 (window.requestIdleCallback || (f => setTimeout(f, 800)))(() => loadEngine().catch(() => {}));
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
 </html>
