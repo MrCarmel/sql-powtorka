@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<title>SQL: JOIN i podzapytania</title>
+<style>
+:root{
+  --bg:#F2F2F7; --surface:#FFFFFF; --fill:rgba(118,118,128,.12); --code:#F2F2F7; --seg-sel:#FFFFFF;
+  --label:#1C1C1E; --label2:#6C6C70; --sep:rgba(60,60,67,.22);
+  --accent:#0066CC; --accent-fill:#0066CC; --accent-tint:rgba(0,102,204,.12);
+  --ok:#1E7B34; --ok-tint:rgba(52,199,89,.16); --bad:#C4001A; --bad-tint:rgba(255,59,48,.12);
+  --warn-tint:rgba(255,159,10,.18);
+  --left:#5856D6; --left-tint:rgba(88,86,214,.15); --right:#B35200; --right-tint:rgba(255,149,0,.18); --both:#8A5490;
+  --k:#9B2393; --s:#C41A16; --n:#1C00CF; --c:#5D6C79; --f:#326D74;
+  --glass:rgba(249,249,251,.74); --glass-edge:rgba(0,0,0,.08); --shadow:0 8px 30px rgba(0,0,0,.12);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#000000; --surface:#1C1C1E; --fill:rgba(118,118,128,.24); --code:#2C2C2E; --seg-sel:#636366;
+    --label:#F5F5F7; --label2:#AEAEB2; --sep:rgba(84,84,88,.65);
+    --accent:#409CFF; --accent-fill:#0A84FF; --accent-tint:rgba(10,132,255,.22);
+    --ok:#30D158; --ok-tint:rgba(48,209,88,.18); --bad:#FF6961; --bad-tint:rgba(255,69,58,.2);
+    --warn-tint:rgba(255,159,10,.2);
+    --left:#8E8CFF; --left-tint:rgba(94,92,230,.3); --right:#FFA733; --right-tint:rgba(255,159,10,.24); --both:#C79AD0;
+    --k:#FF7AB2; --s:#FF8170; --n:#D9C97C; --c:#8E9AA6; --f:#78C2B3;
+    --glass:rgba(30,30,32,.72); --glass-edge:rgba(255,255,255,.1); --shadow:0 8px 30px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#1C1C1E; --fill:rgba(118,118,128,.24); --code:#2C2C2E; --seg-sel:#636366;
+  --label:#F5F5F7; --label2:#AEAEB2; --sep:rgba(84,84,88,.65);
+  --accent:#409CFF; --accent-fill:#0A84FF; --accent-tint:rgba(10,132,255,.22);
+  --ok:#30D158; --ok-tint:rgba(48,209,88,.18); --bad:#FF6961; --bad-tint:rgba(255,69,58,.2);
+  --warn-tint:rgba(255,159,10,.2);
+  --left:#8E8CFF; --left-tint:rgba(94,92,230,.3); --right:#FFA733; --right-tint:rgba(255,159,10,.24); --both:#C79AD0;
+  --k:#FF7AB2; --s:#FF8170; --n:#D9C97C; --c:#8E9AA6; --f:#78C2B3;
+  --glass:rgba(30,30,32,.72); --glass-edge:rgba(255,255,255,.1); --shadow:0 8px 30px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--label);font-family:var(--font);font-size:1.0625rem;line-height:1.47;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top)}
+main{max-width:820px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right)) calc(116px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+h1,h2,h3{margin:0;line-height:1.2}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 12px;padding-left:1.25em}
+li{margin:0 0 4px}
+code{font-family:var(--mono);font-size:.86em;background:var(--fill);padding:.1em .35em;border-radius:5px}
+.muted{color:var(--label2)}
+.foot{font-size:.8125rem;color:var(--label2)}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Large title */
+.lt{padding:22px 0 16px}
+.lt h1{font-size:2.125rem;font-weight:700}
+.lt p{margin:6px 0 0;color:var(--label2)}
+.eyebrow{font-size:.8125rem;font-weight:600;color:var(--label2);margin:0 0 4px}
+h2.sec{font-size:1.375rem;font-weight:700;margin:28px 0 10px}
+.h3{font-size:1.0625rem;font-weight:600;margin:0 0 8px}
+.card{background:var(--surface);border-radius:14px;padding:16px;margin:0 0 12px}
+
+/* Tab bar -> sidebar */
+.tabbar{position:fixed;z-index:20;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);padding:6px;border-radius:32px;background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:var(--shadow),inset 0 0 0 .5px var(--glass-edge)}
+.tabbar .brand{display:none}
+.tabbar button{appearance:none;border:0;background:none;color:var(--label2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px 5px;border-radius:26px;font:600 .6875rem/1.1 var(--font);cursor:pointer;min-height:50px}
+.tabbar svg{width:24px;height:24px;fill:currentColor;flex:none}
+.tabbar button[aria-current="page"]{color:var(--accent);background:var(--fill)}
+@media (prefers-reduced-transparency: reduce){.tabbar{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media (min-width:900px){
+  body{padding-left:260px}
+  main{padding-bottom:56px}
+  .tabbar{left:0;top:0;bottom:0;right:auto;width:260px;max-width:none;margin:0;border-radius:0;display:flex;flex-direction:column;gap:2px;padding:calc(28px + env(safe-area-inset-top)) 12px 24px;box-shadow:none;border-right:.5px solid var(--sep)}
+  .tabbar .brand{display:block;padding:0 12px 16px}
+  .tabbar .brand b{display:block;font-size:1.25rem}
+  .tabbar .brand span{font-size:.8125rem;color:var(--label2)}
+  .tabbar button{flex-direction:row;justify-content:flex-start;gap:12px;padding:9px 12px;border-radius:10px;font:500 1rem/1.2 var(--font);min-height:42px;color:var(--label)}
+  .tabbar button svg{color:var(--accent);width:22px;height:22px}
+  .tabbar button[aria-current="page"]{background:var(--accent-tint);color:var(--accent)}
+  .tabbar button:not([aria-current="page"]):hover{background:var(--fill)}
+}
+
+/* Buttons & controls */
+.btn{appearance:none;border:0;border-radius:12px;min-height:44px;padding:10px 18px;font:600 1.0625rem/1.2 var(--font);background:var(--accent-fill);color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn.tint{background:var(--accent-tint);color:var(--accent)}
+.btn.gray{background:var(--fill);color:var(--label)}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:.9375rem;border-radius:10px}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:not(:disabled):active{opacity:.7}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.btn-row .btn{flex:1 1 0}
+.seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;margin:0 0 16px}
+.seg button{flex:1 1 0;min-width:0;border:0;background:none;color:var(--label);font:500 .875rem/1.2 var(--font);padding:8px 4px;border-radius:8px;min-height:36px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg button[aria-pressed="true"]{background:var(--seg-sel);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.14)}
+
+/* Lists */
+.list-h{font-size:.8125rem;color:var(--label2);margin:24px 16px 6px;text-transform:uppercase;letter-spacing:.02em}
+.list{background:var(--surface);border-radius:14px;overflow:hidden;margin:0 0 12px}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:10px 16px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;position:relative}
+.row+.row::before{content:"";position:absolute;top:0;left:52px;right:0;border-top:.5px solid var(--sep)}
+.row:active{background:var(--fill)}
+@media (hover:hover){.row:hover{background:var(--fill)}}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;font-weight:400}
+.row .t span{display:block;font-size:.8125rem;color:var(--label2);font-family:var(--mono)}
+.row .chev{color:var(--label2);font-size:1.25rem;line-height:1}
+.st{flex:none;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--sep);display:grid;place-items:center;font-size:.75rem;font-weight:700;color:var(--label2)}
+.st.done{background:var(--ok);border-color:var(--ok);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .st.done{color:#000}}
+.pbar{height:6px;border-radius:3px;background:var(--fill);overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--accent-fill);border-radius:3px;transition:width .3s}
+
+/* Disclosure topics */
+details.topic{background:var(--surface);border-radius:14px;margin:0 0 10px;overflow:hidden}
+details.topic>summary{list-style:none;cursor:pointer;padding:14px 48px 14px 16px;position:relative;min-height:54px}
+summary::-webkit-details-marker{display:none}
+details.topic>summary b{display:block;font-weight:600}
+details.topic>summary span{display:block;font-size:.875rem;color:var(--label2)}
+details.topic>summary::after,details.plain>summary::after{content:"";position:absolute;right:20px;top:50%;width:8px;height:8px;border-right:2px solid var(--label2);border-bottom:2px solid var(--label2);transform:translateY(-70%) rotate(45deg);transition:transform .2s}
+details[open].topic>summary::after,details[open].plain>summary::after{transform:translateY(-25%) rotate(-135deg)}
+details.topic .body{padding:2px 16px 16px}
+details.plain{background:var(--surface);border-radius:14px;margin:0 0 12px}
+details.plain>summary{list-style:none;cursor:pointer;padding:13px 48px 13px 16px;position:relative;font-weight:600;min-height:48px}
+details.plain .body{padding:0 16px 16px}
+
+/* Code */
+.code{margin:0 0 12px;border-radius:12px;background:var(--code);overflow:hidden}
+.code pre{margin:0;padding:12px 14px;overflow-x:auto;font:14px/1.55 var(--mono);white-space:pre}
+.code .bar{display:flex;gap:6px;padding:0 8px 8px;flex-wrap:wrap}
+.code .out{padding:0 8px}
+.code .out:not(:empty){padding-bottom:8px}
+.t-k{color:var(--k);font-weight:600}.t-s{color:var(--s)}.t-n{color:var(--n)}.t-c{color:var(--c);font-style:italic}.t-f{color:var(--f)}
+.note{border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:.9375rem}
+.note>b:first-child{display:block;margin-bottom:2px}
+.note.tip{background:var(--accent-tint)}
+.note.warn{background:var(--warn-tint)}
+
+/* Result tables */
+.tbl{overflow-x:auto;border-radius:10px;border:.5px solid var(--sep);margin:0 0 6px;background:var(--surface)}
+.tbl table{border-collapse:collapse;width:100%;font-size:.875rem;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:7px 10px;text-align:left;white-space:nowrap;border-bottom:.5px solid var(--sep)}
+.tbl th{background:var(--fill);font-weight:600;font-size:.8125rem}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.null{color:var(--label2);font-style:italic}
+.tbl.wrap th,.tbl.wrap td{white-space:normal;vertical-align:top}
+.meta{font-size:.8125rem;color:var(--label2);margin:0 0 12px}
+.fb{border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:.9375rem}
+.fb.ok{background:var(--ok-tint)} .fb.bad{background:var(--bad-tint)} .fb.info{background:var(--fill)}
+.fb strong{display:block}
+.fb.ok strong{color:var(--ok)} .fb.bad strong{color:var(--bad)}
+.fb details{margin-top:8px} .fb summary{cursor:pointer;font-weight:600}
+
+/* Lab */
+.venn-wrap{display:grid;gap:8px 20px;align-items:center;grid-template-columns:1fr;margin:0 0 12px}
+@media (min-width:600px){.venn-wrap{grid-template-columns:240px 1fr}}
+.venn{width:100%;max-width:250px;margin:0 auto;display:block}
+.venn .reg{fill-opacity:0;transition:fill-opacity .25s}
+.venn .reg.on{fill-opacity:.55}
+.venn .rA{fill:var(--left)} .venn .rB{fill:var(--right)} .venn .rAB{fill:var(--both)}
+.venn .ring{fill:none;stroke-width:2}
+.venn .ringA{stroke:var(--left)} .venn .ringB{stroke:var(--right)}
+.venn text{font:600 12px var(--font)} .venn .tA{fill:var(--left)} .venn .tB{fill:var(--right)}
+.src{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px}
+.src>div,.venn-wrap>*{min-width:0}
+@media (max-width:370px){.src{grid-template-columns:1fr}}
+.cap{font-size:.8125rem;font-weight:700;margin:0 0 6px;font-family:var(--mono)}
+.cap.L{color:var(--left)} .cap.R{color:var(--right)}
+.tbl th.L{background:var(--left-tint)} .tbl th.R{background:var(--right-tint)}
+.tbl tr.out td{opacity:.4;text-decoration:line-through}
+.tbl tr.hot td{background:var(--accent-tint)}
+.tbl.click tbody tr{cursor:pointer}
+.tag{display:inline-block;font-size:.6875rem;font-weight:600;padding:1px 6px;border-radius:6px;background:var(--fill);color:var(--label2);margin-left:4px;font-style:normal;text-decoration:none}
+.step{border-left:3px solid var(--accent-fill);padding:0 0 2px 12px;margin:0 0 16px}
+
+/* Editor */
+.editor{background:var(--surface);border-radius:14px;overflow:hidden;margin:0 0 12px;border:1px solid var(--sep)}
+.editor:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint)}
+.kbar{display:flex;gap:6px;overflow-x:auto;padding:8px;border-bottom:.5px solid var(--sep);scrollbar-width:none}
+.kbar::-webkit-scrollbar{display:none}
+.chip{flex:none;border:0;background:var(--fill);color:var(--label);font:500 .875rem/1 var(--mono);padding:9px 11px;border-radius:9px;cursor:pointer;min-height:36px;white-space:nowrap}
+.chip:active{opacity:.6}
+.chip.tn{color:var(--accent);font-weight:700}
+.chip small{color:var(--label2);font-size:.75rem;margin-left:3px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+textarea.sql-in{display:block;width:100%;min-height:170px;border:0;resize:vertical;padding:12px 14px;font:16px/1.5 var(--mono);background:transparent;color:var(--label);outline:none}
+.back{appearance:none;border:0;background:none;color:var(--accent);font:inherit;padding:12px 0 0;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:4px}
+.task-text{font-size:1.0625rem}
+.pager{display:flex;justify-content:space-between;gap:10px;margin:20px 0 0}
+
+/* Quiz */
+.qmeta{display:flex;justify-content:space-between;font-size:.8125rem;color:var(--label2);margin:0 0 8px}
+.qtext{font-size:1.25rem;font-weight:600;margin:14px 0 12px;line-height:1.3}
+.opts{display:grid;gap:8px;margin:0 0 12px}
+.opt{border:0;text-align:left;background:var(--fill);color:var(--label);font:inherit;padding:13px 16px;border-radius:12px;min-height:52px;cursor:pointer;display:flex;gap:10px;align-items:flex-start}
+.opt:disabled{cursor:default;color:var(--label)}
+.opt .mk{flex:none;width:1.2em;font-weight:700}
+.opt.right{background:var(--ok-tint);box-shadow:inset 0 0 0 2px var(--ok)}
+.opt.wrong{background:var(--bad-tint);box-shadow:inset 0 0 0 2px var(--bad)}
+.opt code{background:none;padding:0}
+.ans,.pool{display:flex;flex-wrap:wrap;gap:8px;min-height:56px;padding:8px;border-radius:12px;margin:0 0 10px;align-items:flex-start}
+.ans{border:1.5px dashed var(--sep)}
+.ans:empty::before{content:"Dotykaj klauzul poniżej w odpowiedniej kolejności";color:var(--label2);font-size:.875rem;padding:8px}
+.big{font-size:3rem;font-weight:700;line-height:1;margin:8px 0}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<nav class="tabbar" aria-label="Sekcje">
+  <div class="brand"><b>SQL · powtórka</b><span>JOIN, podzapytania, widoki</span></div>
+  <button data-tab="teoria"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a3 3 0 0 1 3-3h12a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 0 0 2h12a1 1 0 1 1 0 2H7a3 3 0 0 1-3-3z"/></svg>Teoria</button>
+  <button data-tab="lab"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="6.5" fill-opacity=".55"/><circle cx="15" cy="12" r="6.5" fill-opacity=".85"/></svg>Lab</button>
+  <button data-tab="zadania"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm2.3 4.3a1 1 0 0 0 0 1.4L8.6 12l-2.3 2.3a1 1 0 1 0 1.4 1.4l3-3a1 1 0 0 0 0-1.4l-3-3a1 1 0 0 0-1.4 0zM12 15a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2z"/></svg>Zadania</button>
+  <button data-tab="quiz"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 13.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zM12 6c-2 0-3.5 1.3-3.5 3a1 1 0 0 0 2 0c0-.6.6-1 1.5-1s1.5.5 1.5 1.1c0 .5-.3.8-1 1.2-.9.6-1.5 1.2-1.5 2.4a1 1 0 0 0 2 0c0-.4.2-.6.8-1 .9-.6 1.7-1.3 1.7-2.6C15.5 7.3 14 6 12 6z"/></svg>Quiz</button>
+  <button data-tab="sciaga"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm2 11a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2zm0 4a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2z"/></svg>Ściąga</button>
+</nav>
+
+<main>
+
+<!-- ============ TEORIA ============ -->
+<section class="view" id="v-teoria" hidden>
+  <header class="lt"><h1>Teoria</h1><p>Każdy przykład możesz uruchomić na bazie ze sprawdzianu.</p></header>
+  <div class="seg" role="group" aria-label="Temat" id="th-seg">
+    <button data-seg="join">Łączenie tabel</button><button data-seg="sub">Podzapytania</button><button data-seg="inne">Widoki i reszta</button>
+  </div>
+
+  <div data-pane="join">
+    <details class="topic"><summary><b>Klucze — skąd JOIN wie, co połączyć</b><span>Schemat baz: zespoły i biblioteka</span></summary><div class="body">
+      <p>Tabele łączymy przez kolumny o tym samym znaczeniu: <b>klucz obcy</b> w jednej tabeli wskazuje <b>klucz główny</b> w drugiej. Strzałka przy kolumnie mówi, dokąd prowadzi.</p>
+      <div id="schema-cards"></div>
+    </div></details>
+
+    <details class="topic"><summary><b>INNER JOIN — tylko pary</b><span>Wiersze, które mają odpowiednik w obu tabelach</span></summary><div class="body">
+      <p>Zwraca tylko te wiersze, dla których warunek <code>ON</code> znalazł parę. Słowo <code>INNER</code> można pominąć: samo <code>JOIN</code> znaczy to samo.</p>
+<pre class="sql" data-db="zespoly">SELECT p.imie, p.nazwisko, z.nazwa
+FROM pracownicy p
+INNER JOIN zespoly z ON p.id_zesp = z.id_zesp;</pre>
+      <div class="note tip"><b>Aliasy</b>Litery <code>p</code> i <code>z</code> to skróty nazw tabel. Są konieczne, gdy kolumna o tej samej nazwie (<code>id_zesp</code>) jest w obu tabelach — bez aliasu dostaniesz błąd „niejednoznaczna kolumna”.</div>
+      <p>Starszy zapis, który też działa (warunek łączenia w <code>WHERE</code>):</p>
+<pre class="sql" data-db="zespoly">SELECT p.imie, p.nazwisko, z.nazwa
+FROM pracownicy p, zespoly z
+WHERE p.id_zesp = z.id_zesp;</pre>
+    </div></details>
+
+    <details class="topic"><summary><b>LEFT i RIGHT JOIN — wszystko z jednej strony</b><span>Brak pary = NULL</span></summary><div class="body">
+      <p><code>LEFT JOIN</code> bierze <b>wszystkie</b> wiersze z tabeli po lewej (przed słowem JOIN) i dokleja pasujące z prawej. Gdy pary brak, kolumny z prawej mają <code>NULL</code>.</p>
+<pre class="sql" data-db="zespoly">SELECT z.nazwa, p.nazwisko
+FROM zespoly z
+LEFT JOIN pracownicy p ON p.id_zesp = z.id_zesp;</pre>
+      <p>„Badania operacyjne” pojawią się z <code>NULL</code> — to zespół bez pracowników.</p>
+      <p><code>RIGHT JOIN</code> działa odwrotnie. Każdy RIGHT JOIN da się zapisać jako LEFT JOIN, zamieniając tabele miejscami — większość osób pisze tylko LEFT.</p>
+    </div></details>
+
+    <details class="topic"><summary><b>Wiersze bez pary (anti-join)</b><span>LEFT JOIN … WHERE … IS NULL — zadanie 5</span></summary><div class="body">
+<pre class="sql" data-db="zespoly">SELECT z.nazwa
+FROM zespoly z
+LEFT JOIN pracownicy p ON p.id_zesp = z.id_zesp
+WHERE p.id_prac IS NULL;</pre>
+      <p>Sprawdzaj <code>IS NULL</code> na kolumnie, która w prawdziwym wierszu nigdy nie jest pusta — najlepiej na kluczu głównym prawej tabeli.</p>
+      <div class="note warn"><b>Pułapka</b><code>= NULL</code> nigdy nie jest prawdą (porównanie z NULL daje „nieznane”). Zawsze <code>IS NULL</code> albo <code>IS NOT NULL</code>.</div>
+    </div></details>
+
+    <details class="topic"><summary><b>FULL OUTER JOIN i CROSS JOIN</b><span>Wszystko z obu stron · każdy z każdym</span></summary><div class="body">
+      <p><code>FULL OUTER JOIN</code> = LEFT + RIGHT: wszystkie wiersze z obu tabel. <b>MySQL go nie ma</b> — robi się to przez <code>UNION</code>:</p>
+<pre class="sql" data-db="zespoly">SELECT p.nazwisko, z.nazwa
+FROM pracownicy p LEFT JOIN zespoly z ON p.id_zesp = z.id_zesp
+UNION
+SELECT p.nazwisko, z.nazwa
+FROM pracownicy p RIGHT JOIN zespoly z ON p.id_zesp = z.id_zesp;</pre>
+      <p><code>CROSS JOIN</code> to iloczyn kartezjański: każdy wiersz z każdym. 15 pracowników × 5 zespołów = 75 wierszy. Ten sam efekt dostaniesz, gdy <b>zapomnisz warunku łączenia</b>.</p>
+<pre class="sql" data-db="zespoly">SELECT COUNT(*) AS wierszy
+FROM pracownicy CROSS JOIN zespoly;</pre>
+    </div></details>
+
+    <details class="topic"><summary><b>Self-join — tabela z samą sobą</b><span>Pracownik i jego szef</span></summary><div class="body">
+      <p>Szef też jest pracownikiem, więc siedzi w tej samej tabeli. Używamy jej dwa razy, z różnymi aliasami:</p>
+<pre class="sql" data-db="zespoly">SELECT p.nazwisko AS pracownik, s.nazwisko AS szef
+FROM pracownicy p
+LEFT JOIN pracownicy s ON p.id_szefa = s.id_prac;</pre>
+      <p>LEFT, bo dyrektor nie ma szefa (<code>id_szefa</code> = NULL) — z INNER JOIN by zniknął.</p>
+    </div></details>
+
+    <details class="topic"><summary><b>Trzy tabele i więcej</b><span>Na n tabel potrzeba n−1 warunków ON</span></summary><div class="body">
+      <p>Każdy kolejny JOIN dokleja następną tabelę do dotychczasowego wyniku. Tabela <code>zamowienie</code> łączy czytelnika z książką:</p>
+<pre class="sql" data-db="biblioteka">SELECT c.imie, c.nazwisko, k.tytul, z.data_zamowienia
+FROM czytelnik c
+JOIN zamowienie z ON z.id_czytelnika = c.id_czytelnika
+JOIN ksiazka k ON k.id_ksiazki = z.id_ksiazki;</pre>
+    </div></details>
+
+    <details class="topic"><summary><b>JOIN + GROUP BY + HAVING</b><span>Liczenie w grupach, COUNT(*) a COUNT(kolumna)</span></summary><div class="body">
+      <p>Najpierw łączymy, potem grupujemy. <code>WHERE</code> filtruje wiersze <b>przed</b> grupowaniem, <code>HAVING</code> filtruje całe grupy <b>po</b> grupowaniu — tylko tam wolno użyć <code>COUNT</code>, <code>SUM</code> itd.</p>
+<pre class="sql" data-db="zespoly">SELECT z.nazwa, COUNT(*) AS liczba
+FROM pracownicy p
+JOIN zespoly z ON p.id_zesp = z.id_zesp
+GROUP BY z.id_zesp, z.nazwa
+HAVING COUNT(*) &gt;= 3;</pre>
+      <div class="note warn"><b>Pułapka z LEFT JOIN</b><code>COUNT(*)</code> liczy też „pusty” wiersz z NULL-ami, więc zespół bez ludzi dostanie 1. Licz kolumnę z prawej tabeli: <code>COUNT(p.id_prac)</code> da 0.</div>
+<pre class="sql" data-db="zespoly">SELECT z.nazwa,
+       COUNT(*) AS gwiazdka,
+       COUNT(p.id_prac) AS kolumna
+FROM zespoly z
+LEFT JOIN pracownicy p ON p.id_zesp = z.id_zesp
+GROUP BY z.id_zesp, z.nazwa;</pre>
+    </div></details>
+
+    <details class="topic"><summary><b>ON czy WHERE? Pułapka LEFT JOIN</b><span>Warunek na prawej tabeli psuje LEFT JOIN</span></summary><div class="body">
+      <p>Warunek na kolumnie prawej tabeli w <code>WHERE</code> wyrzuca wiersze z NULL — LEFT JOIN zamienia się w INNER:</p>
+<pre class="sql" data-db="zespoly">-- tylko zespoły, w których jest asystent
+SELECT z.nazwa, p.nazwisko
+FROM zespoly z
+LEFT JOIN pracownicy p ON p.id_zesp = z.id_zesp
+WHERE p.etat = 'ASYSTENT';</pre>
+      <p>Chcesz zachować wszystkie zespoły? Przenieś warunek do <code>ON</code>:</p>
+<pre class="sql" data-db="zespoly">-- wszystkie zespoły, asystenci tam, gdzie są
+SELECT z.nazwa, p.nazwisko
+FROM zespoly z
+LEFT JOIN pracownicy p ON p.id_zesp = z.id_zesp
+                      AND p.etat = 'ASYSTENT';</pre>
+    </div></details>
+  </div>
+
+  <div data-pane="sub">
+    <details class="topic"><summary><b>Czym jest podzapytanie</b><span>Gdzie można je wstawić i co ma zwrócić</span></summary><div class="body">
+      <p>Podzapytanie to <code>SELECT</code> w nawiasach wewnątrz innego zapytania. Najpierw liczy się wewnętrzne, a jego wynik trafia do zewnętrznego. To, co może zwrócić, zależy od miejsca:</p>
+      <div class="tbl wrap"><table>
+        <thead><tr><th>Miejsce</th><th>Operator</th><th>Podzapytanie zwraca</th></tr></thead>
+        <tbody>
+          <tr><td>WHERE / HAVING</td><td><code>= &lt; &gt;</code></td><td>jedną wartość</td></tr>
+          <tr><td>WHERE</td><td><code>IN</code>, <code>NOT IN</code></td><td>jedną kolumnę, wiele wierszy</td></tr>
+          <tr><td>WHERE</td><td><code>EXISTS</code></td><td>cokolwiek — liczy się, czy są wiersze</td></tr>
+          <tr><td>FROM</td><td>—</td><td>całą tabelę (wymaga aliasu)</td></tr>
+          <tr><td>SELECT</td><td>—</td><td>jedną wartość dla każdego wiersza</td></tr>
+        </tbody></table></div>
+      <p class="foot" style="margin-top:8px">Zobacz, jak to działa krok po kroku, w zakładce Lab.</p>
+    </div></details>
+
+    <details class="topic"><summary><b>Skalarne: =, &gt;, &lt;</b><span>Najwięcej, najmniej, więcej niż średnia</span></summary><div class="body">
+<pre class="sql" data-db="zespoly">SELECT imie, nazwisko, placa_pod
+FROM pracownicy
+WHERE placa_pod = (SELECT MAX(placa_pod) FROM pracownicy);</pre>
+      <p>Dlaczego nie <code>WHERE placa_pod = MAX(placa_pod)</code>? Funkcji agregujących nie wolno używać w WHERE — WHERE ocenia jeden wiersz naraz, a MAX potrzebuje wszystkich.</p>
+<pre class="sql" data-db="zespoly">SELECT imie, nazwisko, placa_pod
+FROM pracownicy
+WHERE placa_pod &gt; (SELECT AVG(placa_pod) FROM pracownicy);</pre>
+      <div class="note warn"><b>Pułapka</b>Jeśli podzapytanie po <code>=</code> zwróci więcej niż jeden wiersz, MySQL zgłosi błąd <i>Subquery returns more than 1 row</i>. Wtedy użyj <code>IN</code>. (Silnik w tej stronie, SQLite, po cichu weźmie pierwszy wiersz — nie daj się zwieść.)</div>
+    </div></details>
+
+    <details class="topic"><summary><b>IN i NOT IN — lista wartości</b><span>Uwaga na NULL w NOT IN — zadanie 6</span></summary><div class="body">
+<pre class="sql" data-db="zespoly">SELECT imie, nazwisko
+FROM pracownicy
+WHERE id_zesp IN (SELECT id_zesp FROM zespoly
+                  WHERE adres = 'Piotrowo 3');</pre>
+<pre class="sql" data-db="zespoly">SELECT nazwa
+FROM zespoly
+WHERE id_zesp NOT IN (SELECT id_zesp FROM pracownicy
+                      WHERE id_zesp IS NOT NULL);</pre>
+      <div class="note warn"><b>NOT IN + NULL = pusty wynik</b>Jeśli podzapytanie zwróci choć jeden NULL, warunek <code>x NOT IN (…, NULL)</code> nigdy nie jest prawdziwy. Dlatego dopisujemy <code>WHERE … IS NOT NULL</code> albo używamy <code>NOT EXISTS</code>.</div>
+    </div></details>
+
+    <details class="topic"><summary><b>EXISTS i NOT EXISTS</b><span>„Czy istnieje choć jeden wiersz?”</span></summary><div class="body">
+      <p><code>EXISTS</code> pyta tylko, czy podzapytanie zwróciło jakikolwiek wiersz. To, co wpiszesz po SELECT w środku, nie ma znaczenia — zwyczajowo <code>SELECT 1</code>.</p>
+<pre class="sql" data-db="zespoly">SELECT z.nazwa
+FROM zespoly z
+WHERE NOT EXISTS (SELECT 1 FROM pracownicy p
+                  WHERE p.id_zesp = z.id_zesp);</pre>
+      <p><code>NOT EXISTS</code> nie ma problemu z NULL — to najbezpieczniejszy sposób na „brak pary”.</p>
+    </div></details>
+
+    <details class="topic"><summary><b>Podzapytania skorelowane</b><span>„W swoim zespole” — zadanie 11</span></summary><div class="body">
+      <p>Podzapytanie odwołuje się do kolumny zapytania zewnętrznego (tu <code>p.id_zesp</code>), więc liczy się osobno dla każdego wiersza. Czytaj: „dla tego pracownika weź średnią <i>jego</i> zespołu”.</p>
+<pre class="sql" data-db="zespoly">SELECT p.imie, p.nazwisko, p.id_zesp, p.placa_pod
+FROM pracownicy p
+WHERE p.placa_pod &gt; (SELECT AVG(x.placa_pod)
+                     FROM pracownicy x
+                     WHERE x.id_zesp = p.id_zesp);</pre>
+      <p>Tak samo rozwiążesz zadanie 11 (największa płaca w każdym zespole):</p>
+<pre class="sql" data-db="zespoly">SELECT imie, nazwisko, placa_pod
+FROM pracownicy p
+WHERE placa_pod = (SELECT MAX(placa_pod)
+                   FROM pracownicy
+                   WHERE id_zesp = p.id_zesp);</pre>
+      <div class="note tip"><b>Popularna wersja z IN</b><code>WHERE placa_pod IN (SELECT MAX(placa_pod) FROM pracownicy GROUP BY id_zesp)</code> zwykle daje to samo, ale ma lukę: złapie też kogoś, kto zarabia tyle, ile wynosi maksimum <i>innego</i> zespołu. Dokładnie: <code>WHERE (id_zesp, placa_pod) IN (SELECT id_zesp, MAX(placa_pod) … GROUP BY id_zesp)</code>.</div>
+    </div></details>
+
+    <details class="topic"><summary><b>ANY i ALL</b><span>Porównanie z całą listą</span></summary><div class="body">
+      <p><code>&gt; ALL (…)</code> — większe niż <i>wszystkie</i>, czyli niż maksimum. <code>&gt; ANY (…)</code> — większe niż <i>którykolwiek</i>, czyli niż minimum. W MySQL:</p>
+<pre class="sql" data-norun>SELECT nazwisko, placa_pod
+FROM pracownicy
+WHERE placa_pod &gt; ALL (SELECT placa_pod FROM pracownicy
+                       WHERE id_zesp = 30);</pre>
+      <p>To samo z MAX — działa wszędzie, także tutaj:</p>
+<pre class="sql" data-db="zespoly">SELECT nazwisko, placa_pod
+FROM pracownicy
+WHERE placa_pod &gt; (SELECT MAX(placa_pod) FROM pracownicy
+                   WHERE id_zesp = 30);</pre>
+      <div class="tbl wrap"><table><thead><tr><th>Zapis</th><th>Znaczy to samo co</th></tr></thead><tbody>
+        <tr><td><code>= ANY (…)</code></td><td><code>IN (…)</code></td></tr>
+        <tr><td><code>&lt;&gt; ALL (…)</code></td><td><code>NOT IN (…)</code></td></tr>
+        <tr><td><code>&gt; ALL (…)</code></td><td><code>&gt; (SELECT MAX …)</code></td></tr>
+        <tr><td><code>&lt; ALL (…)</code></td><td><code>&lt; (SELECT MIN …)</code></td></tr>
+        <tr><td><code>&gt; ANY (…)</code></td><td><code>&gt; (SELECT MIN …)</code></td></tr>
+      </tbody></table></div>
+      <p class="foot" style="margin-top:8px">Silnik tej strony (SQLite) nie zna ANY/ALL — na MySQL działają.</p>
+    </div></details>
+
+    <details class="topic"><summary><b>Podzapytanie w FROM</b><span>Tabela pochodna — zawsze z aliasem</span></summary><div class="body">
+      <p>Wynik podzapytania traktujemy jak tymczasową tabelę. W MySQL <b>musi</b> mieć alias (<code>AS t</code>). Przydaje się do „agregatu z agregatu”, np. największej liczby pracowników w zespole:</p>
+<pre class="sql" data-db="zespoly">SELECT MAX(liczba) AS najwiecej
+FROM (SELECT id_zesp, COUNT(*) AS liczba
+      FROM pracownicy
+      GROUP BY id_zesp) AS t;</pre>
+    </div></details>
+
+    <details class="topic"><summary><b>Podzapytanie w SELECT</b><span>Jedna wartość obok każdego wiersza — zadanie 10</span></summary><div class="body">
+<pre class="sql" data-db="zespoly">SELECT z.nazwa,
+       (SELECT COUNT(*) FROM pracownicy p
+        WHERE p.id_zesp = z.id_zesp) AS liczba
+FROM zespoly z;</pre>
+      <p>Tak też policzysz kobiety i mężczyzn w jednym zapytaniu. W tej bazie nie ma kolumny „płeć”, więc korzystamy z tego, że imiona żeńskie kończą się na „a”:</p>
+<pre class="sql" data-db="zespoly">SELECT
+  (SELECT COUNT(*) FROM pracownicy WHERE imie LIKE '%a') AS kobiety,
+  (SELECT COUNT(*) FROM pracownicy WHERE imie NOT LIKE '%a') AS mezczyzni;</pre>
+    </div></details>
+
+    <details class="topic"><summary><b>Podzapytanie w HAVING</b><span>Grupy porównane z całą tabelą</span></summary><div class="body">
+<pre class="sql" data-db="zespoly">SELECT z.nazwa, AVG(p.placa_pod) AS srednia
+FROM zespoly z
+JOIN pracownicy p ON p.id_zesp = z.id_zesp
+GROUP BY z.id_zesp, z.nazwa
+HAVING AVG(p.placa_pod) &gt; (SELECT AVG(placa_pod) FROM pracownicy);</pre>
+    </div></details>
+
+    <details class="topic"><summary><b>JOIN czy podzapytanie?</b><span>Jak wybrać</span></summary><div class="body">
+      <p>Często działają oba (zadania 5 i 6 to to samo pytanie). Reguła kciuka:</p>
+      <ul>
+        <li>Potrzebujesz w wyniku kolumn z <b>obu</b> tabel → <b>JOIN</b>.</li>
+        <li>Filtrujesz po czymś z innej tabeli albo po agregacie (MAX, AVG) → <b>podzapytanie</b>.</li>
+        <li>„Nie ma żadnego…” → <code>LEFT JOIN … IS NULL</code> albo <code>NOT EXISTS</code>.</li>
+      </ul>
+    </div></details>
+  </div>
+
+  <div data-pane="inne">
+    <details class="topic"><summary><b>Widoki — CREATE VIEW</b><span>Zapisane zapytanie z nazwą — zadanie 7</span></summary><div class="body">
+      <p>Widok to zapytanie zapisane pod nazwą. Nie przechowuje danych — przy każdym użyciu wykonuje się od nowa. Używasz go jak zwykłej tabeli.</p>
+<pre class="sql" data-db="zespoly">CREATE VIEW zad7 AS
+SELECT imie, nazwisko, placa_pod
+FROM pracownicy
+WHERE placa_pod = (SELECT MAX(placa_pod) FROM pracownicy);
+
+SELECT * FROM zad7;</pre>
+      <p>Zmiana widoku: <code>CREATE OR REPLACE VIEW zad7 AS …</code> · usunięcie: <code>DROP VIEW zad7;</code></p>
+    </div></details>
+
+    <details class="topic"><summary><b>Kolejność wykonywania zapytania</b><span>Dlaczego alias nie działa w WHERE</span></summary><div class="body">
+      <p>Piszemy w jednej kolejności, a baza wykonuje w innej:</p>
+      <ol>
+        <li><code>FROM</code> + <code>JOIN … ON</code> — skąd dane</li>
+        <li><code>WHERE</code> — filtr pojedynczych wierszy</li>
+        <li><code>GROUP BY</code> — grupowanie</li>
+        <li><code>HAVING</code> — filtr grup</li>
+        <li><code>SELECT</code> — wybór kolumn, aliasy</li>
+        <li><code>DISTINCT</code> — usunięcie duplikatów</li>
+        <li><code>ORDER BY</code> — sortowanie</li>
+        <li><code>LIMIT</code> — przycięcie</li>
+      </ol>
+      <p>Dlatego alias z SELECT nie działa w WHERE (WHERE wykonuje się wcześniej), ale działa w ORDER BY.</p>
+    </div></details>
+
+    <details class="topic"><summary><b>NULL — pięć pułapek</b><span>Najczęstsze błędy na sprawdzianie</span></summary><div class="body">
+      <ul>
+        <li><code>= NULL</code> nigdy nie jest prawdą → <code>IS NULL</code>.</li>
+        <li><code>NOT IN</code> z NULL na liście → pusty wynik.</li>
+        <li><code>COUNT(kolumna)</code> pomija NULL, <code>COUNT(*)</code> liczy wszystko.</li>
+        <li><code>SUM</code>, <code>AVG</code>, <code>MAX</code> pomijają NULL.</li>
+        <li><code>placa + NULL</code> = NULL → użyj <code>COALESCE(placa_dod, 0)</code>.</li>
+      </ul>
+<pre class="sql" data-db="zespoly">SELECT nazwisko, placa_pod, placa_dod,
+       placa_pod + placa_dod AS zle,
+       placa_pod + COALESCE(placa_dod, 0) AS dobrze
+FROM pracownicy;</pre>
+    </div></details>
+
+    <details class="topic"><summary><b>Ta strona a MySQL</b><span>Co działa inaczej w silniku przeglądarki</span></summary><div class="body">
+      <p>Zapytania wykonuje SQLite w przeglądarce. Dla tego materiału składnia jest prawie taka sama jak w MySQL. Różnice:</p>
+      <ul>
+        <li>Dodałem funkcje z MySQL: <code>MONTH()</code>, <code>YEAR()</code>, <code>DAY()</code>, <code>NOW()</code>, <code>CURDATE()</code>.</li>
+        <li><code>CREATE OR REPLACE VIEW</code> jest tłumaczone automatycznie.</li>
+        <li>Brak <code>ANY</code>/<code>ALL</code> — użyj MIN/MAX.</li>
+        <li>Podzapytanie po <code>=</code> zwracające kilka wierszy nie daje błędu (w MySQL daje).</li>
+        <li>Dane są przykładowe — w bazie na sprawdzianie nazwiska i liczby będą inne, ale tabele i kolumny podobne.</li>
+      </ul>
+    </div></details>
+  </div>
+</section>
+
+<!-- ============ LAB ============ -->
+<section class="view" id="v-lab" hidden>
+  <header class="lt"><h1>Lab</h1><p>Przełączaj rodzaj złączenia i patrz, które wiersze przechodzą.</p></header>
+
+  <div class="card">
+    <h2 class="h3">Rodzaje JOIN</h2>
+    <div class="seg" role="group" aria-label="Rodzaj złączenia" id="lab-seg">
+      <button data-m="inner">INNER</button><button data-m="left">LEFT</button><button data-m="right">RIGHT</button><button data-m="full">FULL</button><button data-m="anti">IS NULL</button>
+    </div>
+    <div class="venn-wrap">
+      <svg class="venn" viewBox="0 0 240 150" role="img" id="venn" aria-label="">
+        <defs>
+          <mask id="mA"><rect width="240" height="150" fill="#fff"/><circle cx="148" cy="80" r="58" fill="#000"/></mask>
+          <mask id="mB"><rect width="240" height="150" fill="#fff"/><circle cx="92" cy="80" r="58" fill="#000"/></mask>
+          <clipPath id="cA"><circle cx="92" cy="80" r="58"/></clipPath>
+        </defs>
+        <circle class="reg rA" cx="92" cy="80" r="58" mask="url(#mA)"/>
+        <circle class="reg rB" cx="148" cy="80" r="58" mask="url(#mB)"/>
+        <circle class="reg rAB" cx="148" cy="80" r="58" clip-path="url(#cA)"/>
+        <circle class="ring ringA" cx="92" cy="80" r="58"/>
+        <circle class="ring ringB" cx="148" cy="80" r="58"/>
+        <text class="tA" x="60" y="14" text-anchor="middle">pracownicy</text>
+        <text class="tB" x="180" y="14" text-anchor="middle">zespoly</text>
+      </svg>
+      <p id="lab-desc" style="margin:0"></p>
+    </div>
+    <div id="lab-sql"></div>
+    <div class="src">
+      <div><p class="cap L">pracownicy p</p><div id="lab-l"></div></div>
+      <div><p class="cap R">zespoly z</p><div id="lab-r"></div></div>
+    </div>
+    <p class="cap">wynik</p>
+    <div id="lab-res"></div>
+    <p class="foot">Dotknij wiersza wyniku, żeby zobaczyć, z których wierszy powstał.</p>
+  </div>
+
+  <h2 class="sec">Podzapytanie krok po kroku</h2>
+  <div class="card">
+    <div class="seg" role="group" aria-label="Przykład" id="step-seg"></div>
+    <div id="step-body"></div>
+  </div>
+</section>
+
+<!-- ============ ZADANIA ============ -->
+<section class="view" id="v-zadania" hidden>
+  <div id="task-list"></div>
+  <div id="task-detail"></div>
+</section>
+
+<!-- ============ QUIZ ============ -->
+<section class="view" id="v-quiz" hidden>
+  <header class="lt"><h1>Quiz</h1><p>Sprawdź, czy rozumiesz, a nie tylko pamiętasz.</p></header>
+  <div id="quiz"></div>
+</section>
+
+<!-- ============ ŚCIĄGA ============ -->
+<section class="view" id="v-sciaga" hidden>
+  <header class="lt"><h1>Ściąga</h1><p>Wszystko na jednym ekranie przed sprawdzianem.</p></header>
+
+  <h2 class="sec">Który JOIN?</h2>
+  <div class="tbl wrap"><table>
+    <thead><tr><th>Zapis</th><th>Zwraca</th></tr></thead>
+    <tbody>
+      <tr><td><code>JOIN</code> / <code>INNER JOIN</code></td><td>tylko wiersze z parą w obu tabelach</td></tr>
+      <tr><td><code>LEFT JOIN</code></td><td>wszystko z lewej + pary z prawej (brak pary → NULL)</td></tr>
+      <tr><td><code>RIGHT JOIN</code></td><td>wszystko z prawej + pary z lewej</td></tr>
+      <tr><td><code>LEFT … UNION … RIGHT</code></td><td>FULL JOIN w MySQL: wszystko z obu</td></tr>
+      <tr><td><code>LEFT JOIN … WHERE prawa.id IS NULL</code></td><td>wiersze z lewej <b>bez</b> pary</td></tr>
+      <tr><td><code>CROSS JOIN</code></td><td>każdy z każdym (A × B wierszy)</td></tr>
+      <tr><td><code>FROM t a JOIN t b ON a.id_szefa = b.id</code></td><td>self-join: tabela sama ze sobą</td></tr>
+    </tbody></table></div>
+
+  <h2 class="sec">Podzapytania</h2>
+  <div class="tbl wrap"><table>
+    <thead><tr><th>Podzapytanie zwraca</th><th>Użyj</th></tr></thead>
+    <tbody>
+      <tr><td>jedną wartość (MAX, AVG, COUNT)</td><td><code>=</code>, <code>&gt;</code>, <code>&lt;</code></td></tr>
+      <tr><td>listę wartości</td><td><code>IN</code>, <code>NOT IN</code> (+ <code>IS NOT NULL</code>!)</td></tr>
+      <tr><td>„czy coś istnieje”</td><td><code>EXISTS</code>, <code>NOT EXISTS</code></td></tr>
+      <tr><td>całą tabelę</td><td>w <code>FROM (…) AS t</code></td></tr>
+      <tr><td>wartość zależną od wiersza</td><td>skorelowane: <code>WHERE x.id = p.id</code></td></tr>
+    </tbody></table></div>
+
+  <h2 class="sec">Gotowe wzorce</h2>
+  <div class="card">
+    <p><b>Najwięcej / najmniej</b><br><code>WHERE kol = (SELECT MAX(kol) FROM t)</code></p>
+    <p><b>Więcej niż średnia</b><br><code>WHERE kol &gt; (SELECT AVG(kol) FROM t)</code></p>
+    <p><b>Brak pary</b><br><code>LEFT JOIN b ON … WHERE b.id IS NULL</code><br><code>WHERE id NOT IN (SELECT id FROM b WHERE id IS NOT NULL)</code></p>
+    <p><b>Dla każdego … policz (także zera)</b><br><code>FROM a LEFT JOIN b ON … GROUP BY a.id, a.nazwa</code> + <code>COUNT(b.id)</code></p>
+    <p><b>Co najmniej N</b><br><code>GROUP BY … HAVING COUNT(*) &gt;= N</code></p>
+    <p style="margin:0"><b>Najwięcej w swojej grupie</b><br><code>WHERE kol = (SELECT MAX(kol) FROM t x WHERE x.grupa = p.grupa)</code></p>
+  </div>
+
+  <h2 class="sec">Kolejność</h2>
+  <div class="card">
+    <p><b>Zapis:</b> SELECT → FROM → JOIN … ON → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT</p>
+    <p style="margin:0"><b>Wykonanie:</b> FROM/JOIN → WHERE → GROUP BY → HAVING → SELECT → DISTINCT → ORDER BY → LIMIT</p>
+  </div>
+
+  <h2 class="sec">Sprawdzian — klauzula do każdego pytania</h2>
+  <p class="muted">Na sprawdzianie trzeba podpisać, jakiej klauzuli użyłeś. Dotknij wiersza, żeby przećwiczyć zadanie.</p>
+  <div id="cheat-tasks"></div>
+</section>
+
+</main>
+
+<script>
+'use strict';
+/* ---------- utils & storage ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const plural = (n, a, b, c) => n === 1 ? a : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? b : c;
+const store = (() => {
+  let s = {};
+  try { s = JSON.parse(localStorage.getItem('sqlpowt-v1')) || {}; } catch (e) { s = {}; }
+  s.solved = s.solved || {}; s.drafts = s.drafts || {}; s.quiz = s.quiz || {};
+  return { s, save() { try { localStorage.setItem('sqlpowt-v1', JSON.stringify(s)); } catch (e) { /* prywatne okno: postęp tylko w tej sesji */ } } };
+})();
+
+/* ---------- databases ---------- */
+const SEED = {
+zespoly: `
+CREATE TABLE zespoly (id_zesp INTEGER PRIMARY KEY, nazwa VARCHAR(30), adres VARCHAR(40));
+INSERT INTO zespoly VALUES (10,'Administracja','Piotrowo 3'),(20,'Systemy rozproszone','Piotrowo 3'),(30,'Systemy eksperckie','Strzelecka 14'),(40,'Algorytmy','Włodkowica 16'),(50,'Badania operacyjne','Mielżyńskiego 30');
+CREATE TABLE etaty (nazwa VARCHAR(20) PRIMARY KEY, placa_od DECIMAL(8,2), placa_do DECIMAL(8,2));
+INSERT INTO etaty VALUES ('DYREKTOR',6000,8000),('PROFESOR',4500,6000),('ADIUNKT',3500,4500),('ASYSTENT',2800,3500),('SEKRETARKA',2600,3200),('STAZYSTA',2000,2600),('DOKTORANT',1800,2400);
+CREATE TABLE pracownicy (id_prac INTEGER PRIMARY KEY, imie VARCHAR(20), nazwisko VARCHAR(30), etat VARCHAR(20), id_szefa INTEGER, zatrudniony DATE, placa_pod DECIMAL(8,2), placa_dod DECIMAL(8,2), id_zesp INTEGER);
+INSERT INTO pracownicy VALUES
+(100,'Jan','Wolski','DYREKTOR',NULL,'2005-01-03',7200,800,10),
+(110,'Anna','Błaszczyk','PROFESOR',100,'2008-05-01',5300,500,40),
+(120,'Piotr','Słowik','PROFESOR',100,'2009-09-01',4900,NULL,30),
+(130,'Tomasz','Brzeziński','PROFESOR',100,'2007-07-01',5600,300,20),
+(140,'Ewa','Morawska','PROFESOR',130,'2010-09-15',4700,400,20),
+(150,'Krzysztof','Malinowski','ADIUNKT',130,'2012-09-01',3900,NULL,20),
+(160,'Marta','Kozłowska','ADIUNKT',130,'2014-03-01',4200,200,20),
+(170,'Adam','Jeziorski','ASYSTENT',130,'2016-10-01',3100,250,20),
+(180,'Barbara','Marek','SEKRETARKA',100,'2011-02-20',2900,NULL,10),
+(190,'Michał','Matysiak','ASYSTENT',140,'2017-09-01',3000,NULL,20),
+(200,'Kamil','Zakrzewski','STAZYSTA',140,'2021-07-15',2200,NULL,30),
+(210,'Natalia','Biała','STAZYSTA',130,'2022-10-15',2400,150,30),
+(220,'Paweł','Konopka','ASYSTENT',110,'2018-10-01',3300,NULL,40),
+(230,'Joanna','Hapka','ASYSTENT',120,'2019-09-01',3400,100,30),
+(240,'Łukasz','Nowak','ADIUNKT',110,'2015-06-01',4600,NULL,40);`,
+biblioteka: `
+CREATE TABLE kategoria (id_kategorii INTEGER PRIMARY KEY, nazwa VARCHAR(40));
+INSERT INTO kategoria VALUES (1,'Programowanie'),(2,'Webmasterstwo'),(3,'Bazy danych'),(4,'Grafika'),(5,'Sieci komputerowe'),(6,'Systemy operacyjne');
+CREATE TABLE ksiazka (id_ksiazki INTEGER PRIMARY KEY, tytul VARCHAR(80), autor VARCHAR(40), liczba_stron INTEGER, rok_wydania INTEGER, id_kategorii INTEGER);
+INSERT INTO ksiazka VALUES
+(1,'Python od podstaw','Adam Lis',640,2021,1),
+(2,'C++ w praktyce','Ewa Mazur',912,2019,1),
+(3,'Java. Programowanie obiektowe','Jan Kowal',780,2020,1),
+(4,'HTML i CSS. Tworzenie stron','Anna Wróbel',420,2022,2),
+(5,'JavaScript dla webmastera','Piotr Sowa',560,2023,2),
+(6,'PHP i MySQL. Dynamiczne strony','Marek Dąb',690,2021,2),
+(7,'SQL. Praktyczny kurs','Ola Nowak',380,2022,3),
+(8,'Projektowanie baz danych','Tomasz Bury',520,2018,3),
+(9,'Grafika wektorowa','Iza Kruk',300,2020,4),
+(10,'Fotoedycja krok po kroku','Kasia Lew',350,2019,4),
+(11,'Sieci komputerowe. Kompendium','Paweł Grab',1024,2017,5),
+(12,'Algorytmy i struktury danych','Jan Kowal',860,2016,1),
+(13,'Responsywne strony WWW','Anna Wróbel',280,2024,2),
+(14,'Routing i switching','Paweł Grab',610,2021,5);
+CREATE TABLE czytelnik (id_czytelnika INTEGER PRIMARY KEY, imie VARCHAR(20), nazwisko VARCHAR(30), miasto VARCHAR(30));
+INSERT INTO czytelnik VALUES (1,'Karol','Zieliński','Kraków'),(2,'Julia','Wiśniewska','Kraków'),(3,'Oskar','Kamiński','Wieliczka'),(4,'Zofia','Lewandowska','Kraków'),(5,'Igor','Dąbrowski','Skawina'),(6,'Maja','Wójcik','Kraków'),(7,'Filip','Kaczmarek','Niepołomice'),(8,'Lena','Piotrowska','Kraków');
+CREATE TABLE zamowienie (id_zamowienia INTEGER PRIMARY KEY, id_czytelnika INTEGER, id_ksiazki INTEGER, data_zamowienia DATE, data_zwrotu DATE);
+INSERT INTO zamowienie VALUES
+(1,1,1,'2026-01-12','2026-01-30'),(2,1,7,'2026-03-03','2026-03-20'),(3,2,4,'2026-02-14','2026-03-01'),
+(4,2,5,'2026-03-10',NULL),(5,3,11,'2025-03-21','2025-04-15'),(6,4,2,'2026-03-25','2026-04-08'),
+(7,4,7,'2026-04-02',NULL),(8,5,9,'2025-11-05','2025-11-20'),(9,6,6,'2026-03-15','2026-04-01'),
+(10,6,13,'2026-03-28',NULL),(11,1,12,'2026-05-06','2026-05-25'),(12,3,3,'2026-06-01',NULL),
+(13,2,8,'2025-12-09','2026-01-07'),(14,1,14,'2026-09-17',NULL),(15,4,5,'2026-10-02',NULL);`
+};
+const SCHEMA = {
+  zespoly: [
+    { t: 'pracownicy', pk: 'id_prac', cols: ['id_prac', 'imie', 'nazwisko', 'etat', 'id_szefa', 'zatrudniony', 'placa_pod', 'placa_dod', 'id_zesp'], fk: { etat: 'etaty.nazwa', id_szefa: 'pracownicy.id_prac', id_zesp: 'zespoly.id_zesp' } },
+    { t: 'zespoly', pk: 'id_zesp', cols: ['id_zesp', 'nazwa', 'adres'], fk: {} },
+    { t: 'etaty', pk: 'nazwa', cols: ['nazwa', 'placa_od', 'placa_do'], fk: {} }
+  ],
+  biblioteka: [
+    { t: 'ksiazka', pk: 'id_ksiazki', cols: ['id_ksiazki', 'tytul', 'autor', 'liczba_stron', 'rok_wydania', 'id_kategorii'], fk: { id_kategorii: 'kategoria.id_kategorii' } },
+    { t: 'kategoria', pk: 'id_kategorii', cols: ['id_kategorii', 'nazwa'], fk: {} },
+    { t: 'czytelnik', pk: 'id_czytelnika', cols: ['id_czytelnika', 'imie', 'nazwisko', 'miasto'], fk: {} },
+    { t: 'zamowienie', pk: 'id_zamowienia', cols: ['id_zamowienia', 'id_czytelnika', 'id_ksiazki', 'data_zamowienia', 'data_zwrotu'], fk: { id_czytelnika: 'czytelnik.id_czytelnika', id_ksiazki: 'ksiazka.id_ksiazki' } }
+  ]
+};
+const SUBQ = /\(\s*SELECT/i;
+
+/* ---------- tasks ---------- */
+const GROUPS = { spr: 'Sprawdzian · baza zespoly', bib: 'Biblioteka · polecenia', dod: 'Dodatkowe' };
+const TASKS = [
+  { id: 'z1', g: 'spr', n: 1, db: 'zespoly', title: 'Adiunkci i asystenci na M',
+    text: 'Wyświetl imię i nazwisko adiunktów i asystentów, których nazwisko zaczyna się na M.',
+    clause: "WHERE … IN (…) AND … LIKE 'M%'",
+    hint: "Dwa warunki naraz: etat z listy i <code>nazwisko LIKE 'M%'</code>. Jeśli piszesz przez OR, weź go w nawias — AND wiąże mocniej niż OR.",
+    sol: "SELECT imie, nazwisko\nFROM pracownicy\nWHERE etat IN ('ADIUNKT', 'ASYSTENT')\n  AND nazwisko LIKE 'M%';",
+    traps: [{ sql: "SELECT imie, nazwisko FROM pracownicy WHERE etat = 'ADIUNKT' OR etat = 'ASYSTENT' AND nazwisko LIKE 'M%'", msg: 'AND wykonuje się przed OR, więc dostałeś wszystkich adiunktów. Weź warunki z OR w nawias albo użyj IN.' }] },
+  { id: 'z2', g: 'spr', n: 2, db: 'zespoly', title: 'Pracownik i nazwa zespołu, sortowanie', order: 2,
+    text: 'Wyświetl imię i nazwisko oraz nazwę zespołu, w którym dany pracownik jest zatrudniony. Dane posortuj niemalejąco według nazwy zespołu.',
+    clause: 'INNER JOIN … ON, ORDER BY … ASC',
+    hint: '„Niemalejąco” znaczy rosnąco: <code>ORDER BY nazwa ASC</code> (ASC jest domyślne).',
+    sol: 'SELECT p.imie, p.nazwisko, z.nazwa\nFROM pracownicy p\nINNER JOIN zespoly z ON p.id_zesp = z.id_zesp\nORDER BY z.nazwa ASC;' },
+  { id: 'z3', g: 'spr', n: 3, db: 'zespoly', title: 'Płaca i widełki etatu',
+    text: 'Wyświetl imię i nazwisko, etat, placa_pod oraz placa_od i placa_do (z tabeli etaty).',
+    clause: 'JOIN … ON pracownicy.etat = etaty.nazwa',
+    hint: 'Kolumny łączące mają różne nazwy: <code>pracownicy.etat</code> ↔ <code>etaty.nazwa</code>.',
+    sol: 'SELECT p.imie, p.nazwisko, p.etat, p.placa_pod, e.placa_od, e.placa_do\nFROM pracownicy p\nJOIN etaty e ON p.etat = e.nazwa;' },
+  { id: 'z4', g: 'spr', n: 4, db: 'zespoly', title: 'Zespoły z co najmniej 3 osobami',
+    text: 'Dla każdego zespołu wyświetl liczbę zatrudnionych w nim pracowników. Interesują nas tylko zespoły, które mają co najmniej 3 pracowników.',
+    clause: 'GROUP BY … HAVING COUNT(*) >= 3',
+    hint: 'Warunku na <code>COUNT</code> nie wolno dać w WHERE — od tego jest HAVING. „Co najmniej 3” to <code>&gt;= 3</code>.',
+    sol: 'SELECT z.nazwa, COUNT(*) AS liczba\nFROM pracownicy p\nJOIN zespoly z ON p.id_zesp = z.id_zesp\nGROUP BY z.id_zesp, z.nazwa\nHAVING COUNT(*) >= 3;',
+    alts: [
+      { sql: 'SELECT id_zesp, COUNT(*) FROM pracownicy GROUP BY id_zesp HAVING COUNT(*) >= 3', note: 'Pokazujesz id_zesp zamiast nazwy — też poprawnie. Z JOIN-em do zespoly wynik jest czytelniejszy.' },
+      { sql: 'SELECT z.id_zesp, z.nazwa, COUNT(*) FROM pracownicy p JOIN zespoly z ON p.id_zesp = z.id_zesp GROUP BY z.id_zesp, z.nazwa HAVING COUNT(*) >= 3' }],
+    traps: [{ sql: 'SELECT z.nazwa, COUNT(*) FROM pracownicy p JOIN zespoly z ON p.id_zesp = z.id_zesp GROUP BY z.id_zesp, z.nazwa HAVING COUNT(*) > 3', msg: '„Co najmniej 3” to >= 3. Z > 3 wypada zespół, który ma dokładnie trzech pracowników.' }] },
+  { id: 'z5', g: 'spr', n: 5, db: 'zespoly', title: 'Zespół bez pracowników (JOIN)',
+    text: 'Wyświetl nazwę zespołu, do którego nie należy żaden pracownik (za pomocą łączenia tabel).',
+    clause: 'LEFT JOIN … WHERE … IS NULL',
+    hint: 'LEFT JOIN od strony <code>zespoly</code> zostawi wszystkie zespoły. Tam, gdzie nie ma pary, kolumny pracownika są NULL.',
+    sol: 'SELECT z.nazwa\nFROM zespoly z\nLEFT JOIN pracownicy p ON p.id_zesp = z.id_zesp\nWHERE p.id_prac IS NULL;',
+    needs: [/JOIN/i, 'Wynik dobry, ale to zadanie trzeba zrobić łączeniem tabel (JOIN). Podzapytanie przyda się w zadaniu 6.'] },
+  { id: 'z6', g: 'spr', n: 6, db: 'zespoly', title: 'Zespół bez pracowników (podzapytanie)',
+    text: 'Wykonaj zadanie 5 za pomocą podzapytania.',
+    clause: 'WHERE … NOT IN (SELECT …) lub NOT EXISTS',
+    hint: 'Zespoły, których <code>id_zesp</code> nie ma na liście <code>id_zesp</code> z tabeli pracownicy. Dopisz w podzapytaniu <code>WHERE id_zesp IS NOT NULL</code>.',
+    sol: 'SELECT nazwa\nFROM zespoly\nWHERE id_zesp NOT IN (SELECT id_zesp\n                      FROM pracownicy\n                      WHERE id_zesp IS NOT NULL);',
+    needs: [SUBQ, 'Wynik dobry, ale zadanie wymaga podzapytania — SELECT w nawiasie.'] },
+  { id: 'z7', g: 'spr', n: 7, db: 'zespoly', title: 'Widok zad7: kto zarabia najwięcej', check: 'SELECT * FROM zad7', subset: true,
+    ref: 'CREATE VIEW zad7 AS SELECT * FROM pracownicy WHERE placa_pod = (SELECT MAX(placa_pod) FROM pracownicy)',
+    text: 'Stwórz widok <code>zad7</code>, który za pomocą podzapytania znajdzie osobę, która zarabia najwięcej.',
+    clause: 'CREATE VIEW … AS SELECT … WHERE placa_pod = (SELECT MAX(…))',
+    hint: 'Zacznij od <code>CREATE VIEW zad7 AS</code>, a dalej zwykły SELECT z podzapytaniem <code>(SELECT MAX(placa_pod) FROM pracownicy)</code>. Sprawdzarka wykona <code>SELECT * FROM zad7</code>.',
+    sol: 'CREATE VIEW zad7 AS\nSELECT imie, nazwisko, placa_pod\nFROM pracownicy\nWHERE placa_pod = (SELECT MAX(placa_pod) FROM pracownicy);',
+    needs: [SUBQ, 'Widok działa, ale zadanie wymaga podzapytania (np. z MAX), a nie ORDER BY … LIMIT.'] },
+  { id: 'z8', g: 'spr', n: 8, db: 'zespoly', title: 'Maks. i suma płac — wszystkie zespoły',
+    text: 'Dla każdego zespołu wyświetl maksymalną płacę i sumę płac (na liście mają się pokazać wszystkie zespoły).',
+    clause: 'LEFT JOIN + GROUP BY, MAX(), SUM()',
+    hint: '„Wszystkie zespoły” — także te bez pracowników — więc LEFT JOIN od strony <code>zespoly</code>. Pusty zespół dostanie NULL.',
+    sol: 'SELECT z.nazwa, MAX(p.placa_pod) AS max_placa, SUM(p.placa_pod) AS suma_plac\nFROM zespoly z\nLEFT JOIN pracownicy p ON p.id_zesp = z.id_zesp\nGROUP BY z.id_zesp, z.nazwa;',
+    alts: [{ sql: 'SELECT z.nazwa, COALESCE(MAX(p.placa_pod),0), COALESCE(SUM(p.placa_pod),0) FROM zespoly z LEFT JOIN pracownicy p ON p.id_zesp = z.id_zesp GROUP BY z.id_zesp, z.nazwa', note: 'Z COALESCE pusty zespół pokazuje 0 zamiast NULL — też dobrze.' }],
+    traps: [{ sql: 'SELECT z.nazwa, MAX(p.placa_pod), SUM(p.placa_pod) FROM zespoly z JOIN pracownicy p ON p.id_zesp = z.id_zesp GROUP BY z.id_zesp, z.nazwa', msg: 'Brakuje zespołu bez pracowników. INNER JOIN go gubi — użyj LEFT JOIN od strony zespoly.' }] },
+  { id: 'z9', g: 'spr', n: 9, db: 'zespoly', title: 'Szef pracownika 130',
+    text: 'Podaj imię, nazwisko i id_prac osoby, która jest szefem pracownika o numerze 130.',
+    clause: 'WHERE id_prac = (SELECT id_szefa …) lub self-join',
+    hint: 'Najpierw znajdź <code>id_szefa</code> pracownika 130, potem osobę, której <code>id_prac</code> jest równe tej wartości.',
+    sol: 'SELECT imie, nazwisko, id_prac\nFROM pracownicy\nWHERE id_prac = (SELECT id_szefa\n                 FROM pracownicy\n                 WHERE id_prac = 130);' },
+  { id: 'z10', g: 'spr', n: 10, db: 'zespoly', title: 'Liczba kobiet i mężczyzn', numOnly: true,
+    text: 'W jednym zapytaniu wyświetl liczbę kobiet i mężczyzn.',
+    clause: "SUM(CASE WHEN … ) lub podzapytania w SELECT lub GROUP BY",
+    hint: "W tej bazie nie ma kolumny „płeć”. Imiona żeńskie kończą się na „a”: <code>imie LIKE '%a'</code>. Jeśli w Twojej bazie jest kolumna <code>plec</code>, użyj jej.",
+    sol: "SELECT SUM(CASE WHEN imie LIKE '%a' THEN 1 ELSE 0 END) AS kobiety,\n       SUM(CASE WHEN imie NOT LIKE '%a' THEN 1 ELSE 0 END) AS mezczyzni\nFROM pracownicy;",
+    alts: [{ sql: "SELECT CASE WHEN imie LIKE '%a' THEN 'K' ELSE 'M' END AS plec, COUNT(*) FROM pracownicy GROUP BY plec ORDER BY plec", note: 'Wersja z GROUP BY — liczby w dwóch wierszach. Też dobrze.' }] },
+  { id: 'z11', g: 'spr', n: 11, db: 'zespoly', title: 'Najwyższa płaca w każdym zespole',
+    text: 'Wyświetl imiona i nazwiska oraz placa_pod tych pracowników, którzy zarabiają tyle, co największe płace w każdym zespole.',
+    clause: 'podzapytanie skorelowane z MAX() lub IN (SELECT MAX … GROUP BY)',
+    hint: 'Dla każdego pracownika porównaj jego płacę z <code>MAX(placa_pod)</code> <i>jego</i> zespołu: <code>WHERE id_zesp = p.id_zesp</code> w podzapytaniu.',
+    sol: 'SELECT imie, nazwisko, placa_pod\nFROM pracownicy p\nWHERE placa_pod = (SELECT MAX(placa_pod)\n                   FROM pracownicy\n                   WHERE id_zesp = p.id_zesp);' },
+
+  { id: 'b1', g: 'bib', n: 1, db: 'biblioteka', title: 'Książka z największą liczbą stron', subset: true,
+    ref: 'SELECT * FROM ksiazka WHERE liczba_stron = (SELECT MAX(liczba_stron) FROM ksiazka)',
+    text: 'Podaj książkę, która ma najwięcej stron.',
+    clause: 'WHERE liczba_stron = (SELECT MAX(…))',
+    hint: 'Podzapytanie <code>(SELECT MAX(liczba_stron) FROM ksiazka)</code> zwraca jedną liczbę.',
+    sol: 'SELECT tytul, liczba_stron\nFROM ksiazka\nWHERE liczba_stron = (SELECT MAX(liczba_stron) FROM ksiazka);' },
+  { id: 'b2', g: 'bib', n: 2, db: 'biblioteka', title: 'Tytuł i nazwa kategorii',
+    text: 'Wyświetl tytuł z tabeli ksiazka oraz nazwę kategorii każdej pozycji.',
+    clause: 'JOIN … ON',
+    hint: 'Połącz <code>ksiazka.id_kategorii</code> z <code>kategoria.id_kategorii</code>.',
+    sol: 'SELECT k.tytul, kat.nazwa\nFROM ksiazka k\nJOIN kategoria kat ON k.id_kategorii = kat.id_kategorii;' },
+  { id: 'b3', g: 'bib', n: 3, db: 'biblioteka', title: 'Programowanie i Webmasterstwo', subset: true,
+    ref: "SELECT k.*, kat.nazwa AS kategoria FROM ksiazka k JOIN kategoria kat ON k.id_kategorii = kat.id_kategorii WHERE kat.nazwa IN ('Programowanie', 'Webmasterstwo')",
+    text: 'Wypisz książki z kategorii: Programowanie, Webmasterstwo.',
+    clause: "JOIN + WHERE nazwa IN ('…', '…')",
+    hint: 'Połącz z tabelą kategoria i filtruj po nazwie kategorii przez <code>IN</code>. Można też podzapytaniem po <code>id_kategorii</code>.',
+    sol: "SELECT k.tytul, kat.nazwa\nFROM ksiazka k\nJOIN kategoria kat ON k.id_kategorii = kat.id_kategorii\nWHERE kat.nazwa IN ('Programowanie', 'Webmasterstwo');" },
+  { id: 'b4', g: 'bib', n: 4, db: 'biblioteka', title: 'Ile książek w każdej kategorii',
+    text: 'Policz, ile książek jest w każdej kategorii.',
+    clause: 'LEFT JOIN + GROUP BY + COUNT(kolumna)',
+    hint: '„W każdej” — także w pustej kategorii. LEFT JOIN od strony <code>kategoria</code> i <code>COUNT(k.id_ksiazki)</code>, nie <code>COUNT(*)</code>.',
+    sol: 'SELECT kat.nazwa, COUNT(k.id_ksiazki) AS liczba\nFROM kategoria kat\nLEFT JOIN ksiazka k ON k.id_kategorii = kat.id_kategorii\nGROUP BY kat.id_kategorii, kat.nazwa;',
+    alts: [
+      { sql: 'SELECT kat.nazwa, COUNT(*) FROM ksiazka k JOIN kategoria kat ON k.id_kategorii = kat.id_kategorii GROUP BY kat.id_kategorii, kat.nazwa', note: 'Zaliczone, ale pominąłeś kategorię bez książek („Systemy operacyjne” = 0). LEFT JOIN + COUNT(k.id_ksiazki) pokaże też zera.' },
+      { sql: 'SELECT id_kategorii, COUNT(*) FROM ksiazka GROUP BY id_kategorii', note: 'Zaliczone, ale bez nazw i bez pustej kategorii. Lepiej: LEFT JOIN do tabeli kategoria.' }],
+    traps: [{ sql: 'SELECT kat.nazwa, COUNT(*) FROM kategoria kat LEFT JOIN ksiazka k ON k.id_kategorii = kat.id_kategorii GROUP BY kat.id_kategorii, kat.nazwa', msg: 'Prawie! Pusta kategoria pokazuje 1 zamiast 0, bo COUNT(*) liczy wiersz z NULL-ami. Użyj COUNT(k.id_ksiazki).' }] },
+  { id: 'b5', g: 'bib', n: 5, db: 'biblioteka', title: 'Czytelnicy z zamówieniem w marcu',
+    text: 'Wyświetl wszystkich czytelników (imię, nazwisko), którzy złożyli zamówienie w marcu.',
+    clause: 'JOIN + WHERE MONTH(data) = 3, DISTINCT',
+    hint: '<code>MONTH(z.data_zamowienia) = 3</code>. Ktoś mógł zamawiać w marcu kilka razy — usuń powtórzenia przez <code>DISTINCT</code>.',
+    sol: 'SELECT DISTINCT c.imie, c.nazwisko\nFROM czytelnik c\nJOIN zamowienie z ON z.id_czytelnika = c.id_czytelnika\nWHERE MONTH(z.data_zamowienia) = 3;' },
+  { id: 'b6', g: 'bib', n: 6, db: 'biblioteka', title: 'Zwrócone książki z datami',
+    text: 'Wypisz tytuły książek oraz datę zamówienia i datę zwrotu. Wyświetl tylko te pozycje, które były kiedykolwiek zwrócone.',
+    clause: 'JOIN + WHERE data_zwrotu IS NOT NULL',
+    hint: 'Niezwrócona książka ma <code>data_zwrotu</code> = NULL. Z NULL porównujesz przez <code>IS NOT NULL</code>, nie <code>!=</code>.',
+    sol: 'SELECT k.tytul, z.data_zamowienia, z.data_zwrotu\nFROM zamowienie z\nJOIN ksiazka k ON k.id_ksiazki = z.id_ksiazki\nWHERE z.data_zwrotu IS NOT NULL;' },
+  { id: 'b7', g: 'bib', n: 7, db: 'biblioteka', title: 'Czytelnik i tytuł pożyczonej książki',
+    text: 'Dla każdego czytelnika wyświetl jego imię, nazwisko oraz tytuł książki, jaką pożyczył.',
+    clause: 'dwa JOIN-y: czytelnik → zamowienie → ksiazka',
+    hint: 'Trzy tabele, dwa warunki ON. Tabela <code>zamowienie</code> jest pośrodku.',
+    sol: 'SELECT c.imie, c.nazwisko, k.tytul\nFROM czytelnik c\nJOIN zamowienie z ON z.id_czytelnika = c.id_czytelnika\nJOIN ksiazka k ON k.id_ksiazki = z.id_ksiazki;',
+    alts: [{ sql: 'SELECT c.imie, c.nazwisko, k.tytul FROM czytelnik c LEFT JOIN zamowienie z ON z.id_czytelnika = c.id_czytelnika LEFT JOIN ksiazka k ON k.id_ksiazki = z.id_ksiazki', note: 'Wersja z LEFT JOIN pokazuje też czytelników bez wypożyczeń (z NULL) — też dobrze.' }] },
+  { id: 'b8', g: 'bib', n: 8, db: 'biblioteka', title: 'Ile książek zamówił każdy czytelnik',
+    text: 'Dla każdego czytelnika policz, ile książek zamówił (podaj imię, nazwisko oraz liczbę książek).',
+    clause: 'LEFT JOIN + GROUP BY + COUNT(kolumna)',
+    hint: 'GROUP BY po czytelniku. Żeby pokazać też tych z zerem: LEFT JOIN i <code>COUNT(z.id_zamowienia)</code>.',
+    sol: 'SELECT c.imie, c.nazwisko, COUNT(z.id_zamowienia) AS liczba\nFROM czytelnik c\nLEFT JOIN zamowienie z ON z.id_czytelnika = c.id_czytelnika\nGROUP BY c.id_czytelnika, c.imie, c.nazwisko;',
+    alts: [{ sql: 'SELECT c.imie, c.nazwisko, COUNT(*) FROM czytelnik c JOIN zamowienie z ON z.id_czytelnika = c.id_czytelnika GROUP BY c.id_czytelnika, c.imie, c.nazwisko', note: 'Zaliczone, ale pominąłeś czytelników z zerową liczbą zamówień. LEFT JOIN + COUNT(z.id_zamowienia) pokaże wszystkich.' }],
+    traps: [{ sql: 'SELECT c.imie, c.nazwisko, COUNT(*) FROM czytelnik c LEFT JOIN zamowienie z ON z.id_czytelnika = c.id_czytelnika GROUP BY c.id_czytelnika, c.imie, c.nazwisko', msg: 'Prawie! Czytelnicy bez zamówień mają 1 zamiast 0, bo COUNT(*) liczy wiersz z NULL-ami. Użyj COUNT(z.id_zamowienia).' }] },
+  { id: 'b9', g: 'bib', n: 9, db: 'biblioteka', title: 'Czytelnicy bez zamówień',
+    text: 'Wypisz czytelników (imię, nazwisko), którzy nie zrobili zamówienia w bibliotece.',
+    clause: 'NOT IN (SELECT …) / NOT EXISTS / LEFT JOIN … IS NULL',
+    hint: 'Ci, których <code>id_czytelnika</code> nie występuje w tabeli <code>zamowienie</code>.',
+    sol: 'SELECT imie, nazwisko\nFROM czytelnik\nWHERE id_czytelnika NOT IN (SELECT id_czytelnika FROM zamowienie);' },
+
+  { id: 'x1', g: 'dod', db: 'zespoly', title: 'Więcej niż średnia w firmie',
+    text: 'Wyświetl imię, nazwisko i placa_pod pracowników, którzy zarabiają więcej niż średnia w całej firmie.',
+    clause: 'WHERE … > (SELECT AVG(…))',
+    hint: '<code>WHERE placa_pod &gt; AVG(placa_pod)</code> nie zadziała — agregat musi być w podzapytaniu.',
+    sol: 'SELECT imie, nazwisko, placa_pod\nFROM pracownicy\nWHERE placa_pod > (SELECT AVG(placa_pod) FROM pracownicy);' },
+  { id: 'x2', g: 'dod', db: 'zespoly', title: 'Więcej niż średnia w swoim zespole',
+    text: 'Wyświetl imię, nazwisko, id_zesp i placa_pod pracowników, którzy zarabiają więcej niż średnia w ich własnym zespole.',
+    clause: 'podzapytanie skorelowane',
+    hint: 'W podzapytaniu: <code>WHERE x.id_zesp = p.id_zesp</code> — dwa różne aliasy tej samej tabeli.',
+    sol: 'SELECT p.imie, p.nazwisko, p.id_zesp, p.placa_pod\nFROM pracownicy p\nWHERE p.placa_pod > (SELECT AVG(x.placa_pod)\n                     FROM pracownicy x\n                     WHERE x.id_zesp = p.id_zesp);' },
+  { id: 'x3', g: 'dod', db: 'zespoly', title: 'Pracownik i jego szef — wszyscy',
+    text: 'Dla każdego pracownika wyświetl jego nazwisko i nazwisko jego szefa. Na liście ma być także dyrektor, który szefa nie ma.',
+    clause: 'self-join: LEFT JOIN pracownicy s ON p.id_szefa = s.id_prac',
+    hint: 'Tabela <code>pracownicy</code> dwa razy: raz jako pracownik (p), raz jako szef (s). LEFT, żeby został dyrektor.',
+    sol: 'SELECT p.nazwisko AS pracownik, s.nazwisko AS szef\nFROM pracownicy p\nLEFT JOIN pracownicy s ON p.id_szefa = s.id_prac;',
+    traps: [{ sql: 'SELECT p.nazwisko, s.nazwisko FROM pracownicy p JOIN pracownicy s ON p.id_szefa = s.id_prac', msg: 'Brakuje dyrektora — nie ma szefa, więc INNER JOIN go gubi. Użyj LEFT JOIN.' }] },
+  { id: 'x4', g: 'dod', db: 'zespoly', title: 'Zespoły ze średnią powyżej firmowej',
+    text: 'Wyświetl nazwy zespołów, w których średnia płaca jest wyższa od średniej płacy w całej firmie.',
+    clause: 'GROUP BY + HAVING AVG(…) > (SELECT AVG(…))',
+    hint: 'Grupuj po zespole, a w HAVING porównaj <code>AVG(p.placa_pod)</code> z podzapytaniem.',
+    sol: 'SELECT z.nazwa\nFROM zespoly z\nJOIN pracownicy p ON p.id_zesp = z.id_zesp\nGROUP BY z.id_zesp, z.nazwa\nHAVING AVG(p.placa_pod) > (SELECT AVG(placa_pod) FROM pracownicy);' },
+  { id: 'x5', g: 'dod', db: 'zespoly', title: 'Etaty bez pracowników',
+    text: 'Wyświetl nazwy etatów, na których nikt nie pracuje.',
+    clause: 'NOT EXISTS (SELECT 1 … WHERE p.etat = e.nazwa)',
+    hint: 'Spróbuj <code>NOT EXISTS</code> — dla każdego etatu szukasz choć jednego pracownika.',
+    sol: 'SELECT nazwa\nFROM etaty e\nWHERE NOT EXISTS (SELECT 1 FROM pracownicy p\n                  WHERE p.etat = e.nazwa);' },
+  { id: 'x6', g: 'dod', db: 'zespoly', title: 'Płaca poza widełkami etatu', subset: true,
+    ref: 'SELECT p.*, e.placa_od, e.placa_do FROM pracownicy p JOIN etaty e ON p.etat = e.nazwa WHERE p.placa_pod NOT BETWEEN e.placa_od AND e.placa_do',
+    text: 'Wyświetl pracowników (np. imię, nazwisko, etat, placa_pod), których płaca podstawowa nie mieści się w widełkach ich etatu.',
+    clause: 'JOIN + WHERE … NOT BETWEEN … AND …',
+    hint: '<code>BETWEEN a AND b</code> obejmuje oba końce. Potrzebujesz <code>NOT BETWEEN e.placa_od AND e.placa_do</code>.',
+    sol: 'SELECT p.imie, p.nazwisko, p.etat, p.placa_pod, e.placa_od, e.placa_do\nFROM pracownicy p\nJOIN etaty e ON p.etat = e.nazwa\nWHERE p.placa_pod NOT BETWEEN e.placa_od AND e.placa_do;' },
+  { id: 'x7', g: 'dod', db: 'biblioteka', title: 'Książki nigdy niezamówione', subset: true,
+    ref: 'SELECT * FROM ksiazka k WHERE NOT EXISTS (SELECT 1 FROM zamowienie z WHERE z.id_ksiazki = k.id_ksiazki)',
+    text: 'Wypisz tytuły książek, których nikt nigdy nie zamówił.',
+    clause: 'NOT EXISTS / NOT IN / LEFT JOIN … IS NULL',
+    hint: 'Ten sam wzorzec co „zespół bez pracowników”.',
+    sol: 'SELECT k.tytul\nFROM ksiazka k\nWHERE NOT EXISTS (SELECT 1 FROM zamowienie z\n                  WHERE z.id_ksiazki = k.id_ksiazki);' },
+  { id: 'x8', g: 'dod', db: 'biblioteka', title: 'Czytelnik z największą liczbą zamówień', subset: true,
+    ref: 'SELECT c.imie, c.nazwisko, COUNT(*) AS liczba FROM czytelnik c JOIN zamowienie z ON z.id_czytelnika = c.id_czytelnika GROUP BY c.id_czytelnika, c.imie, c.nazwisko HAVING COUNT(*) = (SELECT MAX(ile) FROM (SELECT COUNT(*) AS ile FROM zamowienie GROUP BY id_czytelnika) AS t)',
+    text: 'Wyświetl imię i nazwisko czytelnika, który złożył najwięcej zamówień.',
+    clause: 'GROUP BY + HAVING COUNT(*) = (SELECT MAX(…) FROM (…) AS t)',
+    hint: 'Potrzebujesz „MAX z COUNT-ów” — to podzapytanie w FROM: <code>(SELECT COUNT(*) AS ile FROM zamowienie GROUP BY id_czytelnika) AS t</code>.',
+    sol: 'SELECT c.imie, c.nazwisko, COUNT(*) AS liczba\nFROM czytelnik c\nJOIN zamowienie z ON z.id_czytelnika = c.id_czytelnika\nGROUP BY c.id_czytelnika, c.imie, c.nazwisko\nHAVING COUNT(*) = (SELECT MAX(ile)\n                   FROM (SELECT COUNT(*) AS ile\n                         FROM zamowienie\n                         GROUP BY id_czytelnika) AS t);' }
+];
+
+/* ---------- SQL engine (sql.js from CDN) ---------- */
+const CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/';
+let SQL = null, engine = null;
+const dbBytes = {};
+function loadEngine() {
+  if (engine) return engine;
+  engine = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = CDN + 'sql-wasm.js';
+    s.onload = () => window.initSqlJs({ locateFile: f => CDN + f }).then(res, rej);
+    s.onerror = () => rej(new Error('offline'));
+    document.head.appendChild(s);
+  }).then(S => {
+    SQL = S;
+    for (const k in SEED) { const d = new S.Database(); d.run(SEED[k]); dbBytes[k] = d.export(); d.close(); }
+    return S;
+  }).catch(e => { engine = null; throw e; });
+  return engine;
+}
+const ENGINE_FAIL = '<div class="fb bad"><strong>Nie udało się pobrać silnika SQL</strong>Sprawdź połączenie z internetem i spróbuj ponownie. Teoria, Lab (JOIN), Quiz i Ściąga działają bez niego.</div>';
+const ENGINE_LOADING = '<div class="fb info">Ładuję silnik SQL (ok. 1 MB, tylko za pierwszym razem)…</div>';
+function openDb(name) {
+  const d = new SQL.Database(dbBytes[name]);
+  const part = (a, b) => v => v == null ? null : (Number(String(v).slice(a, b)) || null);
+  d.create_function('MONTH', part(5, 7));
+  d.create_function('YEAR', part(0, 4));
+  d.create_function('DAY', part(8, 10));
+  d.create_function('CURDATE', () => new Date().toISOString().slice(0, 10));
+  d.create_function('NOW', () => new Date().toISOString().slice(0, 19).replace('T', ' '));
+  return d;
+}
+const shim = sql => sql.replace(/CREATE\s+OR\s+REPLACE\s+VIEW\s+(\w+)/gi, 'DROP VIEW IF EXISTS $1; CREATE VIEW $1');
+// mode 'run': show last result (or the view if the script only created it); mode 'grade': always read via check query
+function execSql(db, sql, check, mode) {
+  const d = openDb(db);
+  try {
+    let r = d.exec(shim(sql)), viaCheck = false;
+    if (check && (mode === 'grade' || !r.length)) { r = d.exec(check); viaCheck = true; }
+    return { res: r.length ? r[r.length - 1] : null, viaCheck };
+  } finally { d.close(); }
+}
+function plErr(m, sql) {
+  const map = [
+    [/^no such column: (.+)$/, 'Nie ma takiej kolumny: $1. Sprawdź nazwę i alias tabeli.'],
+    [/^no such table: zad7$/, 'Nie ma widoku zad7 — zacznij od CREATE VIEW zad7 AS …'],
+    [/^no such table: (.+)$/, 'Nie ma takiej tabeli: $1.'],
+    [/^ambiguous column name: (.+)$/, 'Niejednoznaczna kolumna $1 — jest w kilku tabelach. Dodaj alias, np. p.$1.'],
+    [/^near "(.+)": syntax error$/, 'Błąd składni w okolicy „$1”.'],
+    [/^incomplete input$/, 'Zapytanie jest niedokończone — brakuje nawiasu albo końca?'],
+    [/^misuse of aggregate.*$/, 'Funkcji agregującej (COUNT, MAX, AVG…) nie można użyć w WHERE. Użyj HAVING albo podzapytania.'],
+    [/^sub-select returns (\d+) columns - expected 1$/, 'Podzapytanie zwraca $1 kolumny, a powinno jedną.'],
+    [/^view (\w+) already exists$/, 'Widok $1 już istnieje.'],
+    [/^offline$/, 'Brak połączenia z internetem.']
+  ];
+  let out = m;
+  for (const [re, pl] of map) if (re.test(m)) { out = m.replace(re, pl); break; }
+  if (/\b(ANY|ALL|SOME)\s*\(/i.test(sql || '')) out += ' Uwaga: ten silnik nie zna ANY/ALL — zamień na MIN/MAX.';
+  return out;
+}
+
+/* ---------- rendering helpers ---------- */
+const KW = 'SELECT|FROM|WHERE|AND|OR|NOT|IN|EXISTS|JOIN|INNER|LEFT|RIGHT|FULL|OUTER|CROSS|ON|USING|AS|GROUP|BY|HAVING|ORDER|ASC|DESC|LIMIT|DISTINCT|UNION|ALL|ANY|SOME|IS|NULL|LIKE|BETWEEN|CASE|WHEN|THEN|ELSE|END|CREATE|REPLACE|VIEW|DROP|IF|INSERT|INTO|VALUES|UPDATE|SET|DELETE|TABLE';
+const FN = 'COUNT|SUM|AVG|MIN|MAX|MONTH|YEAR|DAY|ROUND|COALESCE|IFNULL|CONCAT|UPPER|LOWER|LENGTH|NOW|CURDATE';
+const HL = new RegExp(`('(?:[^']|'')*')|(--[^\\n]*)|\\b(\\d+(?:\\.\\d+)?)\\b|\\b(${KW})\\b|\\b(${FN})(?=\\s*\\()`, 'gi');
+function hl(sql) {
+  let out = '', last = 0;
+  sql.replace(HL, (m, s, c, n, k, f, i) => {
+    out += esc(sql.slice(last, i)) + `<span class="t-${s ? 's' : c ? 'c' : n ? 'n' : k ? 'k' : 'f'}">${esc(m)}</span>`;
+    last = i + m.length; return m;
+  });
+  return out + esc(sql.slice(last));
+}
+const fmt = v => typeof v === 'number' && !Number.isInteger(v) ? String(Math.round(v * 100) / 100) : String(v);
+function tableHtml(r, opts = {}) {
+  if (!r) return '<p class="meta">Brak wierszy w wyniku (0 wierszy) albo polecenie nie zwraca danych.</p>';
+  const rows = r.values.slice(0, 200);
+  return `<div class="tbl"><table><thead><tr>${r.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(v => v === null ? '<td class="null">NULL</td>' : `<td>${esc(fmt(v))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` +
+    `<p class="meta">${opts.caption ? esc(opts.caption) + ' · ' : ''}${r.values.length} ${plural(r.values.length, 'wiersz', 'wiersze', 'wierszy')}${r.values.length > 200 ? ' (pokazuję 200)' : ''}</p>`;
+}
+function codeBlock(sql) { return `<div class="code"><pre>${hl(sql)}</pre></div>`; }
+
+/* ---------- grading ---------- */
+const norm = v => v === null ? '\u0000NULL' : typeof v === 'number' ? String(Math.round(v * 1e4) / 1e4) : String(v);
+const colSig = (r, j) => r.values.map(row => norm(row[j])).sort().join('\u0001');
+const bag = (values, cols) => values.map(row => cols.map(j => norm(row[j])).join('\u0001')).sort().join('\u0002');
+// Map every column of A onto a distinct column of B so that the row multisets agree. Column names and order are ignored.
+function matchCols(A, B) {
+  const sa = A.columns.map((_, i) => colSig(A, i)), sb = B.columns.map((_, j) => colSig(B, j));
+  const target = bag(A.values, A.columns.map((_, i) => i));
+  const used = [], map = [];
+  const go = i => {
+    if (i === sa.length) return bag(B.values, map) === target;
+    for (let j = 0; j < sb.length; j++) if (!used[j] && sb[j] === sa[i]) { used[j] = 1; map[i] = j; if (go(i + 1)) return true; used[j] = 0; }
+    return false;
+  };
+  return go(0) ? map.slice() : null;
+}
+function numericOnly(r) {
+  if (!r) return r;
+  const keep = r.columns.map((_, j) => r.values.every(row => row[j] === null || typeof row[j] === 'number'));
+  return { columns: r.columns.filter((_, j) => keep[j]), values: r.values.map(row => row.filter((_, j) => keep[j])) };
+}
+function grade(t, exp, usr) {
+  if (t.numOnly) { exp = numericOnly(exp); usr = numericOnly(usr); }
+  if (!usr) return { ok: false, msg: 'Zapytanie nie zwróciło żadnych wierszy.' };
+  const e = exp.values.length, u = usr.values.length;
+  if (u !== e) {
+    let msg = `Liczba wierszy się nie zgadza: masz ${u}, oczekiwano ${e}.`;
+    if (u > e && new Set(usr.values.map(r => r.map(norm).join('|'))).size === e) msg += ' Wygląda na powtórzenia — spróbuj DISTINCT.';
+    return { ok: false, msg };
+  }
+  if (t.subset) {
+    if (!usr.columns.length || usr.columns.length > exp.columns.length || !matchCols(usr, exp)) return { ok: false, msg: 'Liczba wierszy się zgadza, ale wartości nie. Sprawdź warunki.' };
+    return { ok: true };
+  }
+  if (usr.columns.length !== exp.columns.length) return { ok: false, msg: `Liczba kolumn: masz ${usr.columns.length}, oczekiwano ${exp.columns.length}. Sprawdź, co wypisujesz po SELECT.` };
+  const map = matchCols(exp, usr);
+  if (!map) return { ok: false, msg: 'Liczba wierszy i kolumn się zgadza, ale wartości są inne. Sprawdź warunki WHERE / JOIN.' };
+  if (t.order != null) {
+    const a = usr.values.map(r => norm(r[map[t.order]])).join('|'), b = exp.values.map(r => norm(r[t.order])).join('|');
+    if (a !== b) return { ok: false, msg: 'Dane są dobre, ale kolejność nie. Sprawdź ORDER BY (ASC czy DESC).' };
+  }
+  return { ok: true };
+}
+function gradeTask(t, sql) {
+  const expected = execSql(t.db, t.ref || t.sol, t.check, 'grade').res;
+  const usr = execSql(t.db, sql, t.check, 'grade').res;
+  const shown = t.ref ? execSql(t.db, t.sol, t.check, 'grade').res : expected;
+  let g = grade(t, expected, usr);
+  if (!g.ok) for (const a of t.alts || []) {
+    if (grade(t, execSql(t.db, a.sql, t.check, 'grade').res, usr).ok) { g = { ok: true, note: a.note }; break; }
+  }
+  if (!g.ok) for (const tr of t.traps || []) {
+    if (grade(t, execSql(t.db, tr.sql, t.check, 'grade').res, usr).ok) { g.msg = tr.msg; break; }
+  }
+  if (!g.ok && !usr && /(!=|<>|=)\s*NULL\b/i.test(sql)) g.msg = 'Z NULL nie porównuje się przez = ani != — użyj IS NULL / IS NOT NULL.';
+  if (g.ok && t.needs && !t.needs[0].test(sql)) g = { ok: false, soft: true, msg: t.needs[1] };
+  return { g, usr, shown };
+}
+
+/* ---------- TEORIA ---------- */
+function initTheory() {
+  $('#schema-cards').innerHTML = Object.entries(SCHEMA).map(([db, tables]) =>
+    `<p class="eyebrow" style="margin-top:12px">Baza ${db}</p>` + tables.map(tb => `<div class="code" style="padding:10px 12px"><b style="font-family:var(--mono)">${tb.t}</b><div class="chips" style="margin:6px 0 0">${tb.cols.map(c =>
+      `<span class="chip" style="cursor:default">${c === tb.pk ? '<u>' + c + '</u> <small>klucz</small>' : c}${tb.fk[c] ? `<small>→ ${tb.fk[c]}</small>` : ''}</span>`).join('')}</div></div>`).join('')).join('');
+  $$('pre.sql').forEach(pre => {
+    const sql = pre.textContent.trim(), db = pre.dataset.db;
+    const w = document.createElement('div');
+    w.className = 'code';
+    w.innerHTML = `<pre>${hl(sql)}</pre>` + (db ? '<div class="bar"><button class="btn sm tint" data-act="run">Uruchom</button><button class="btn sm gray" data-act="edit">Edytuj w piaskownicy</button></div><div class="out" aria-live="polite"></div>' : '');
+    w._sql = sql; w._db = db;
+    pre.replaceWith(w);
+  });
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('.code [data-act]');
+    if (!b) return;
+    const w = b.closest('.code');
+    if (b.dataset.act === 'edit') { pending = { sql: w._sql, db: w._db }; location.hash = '#zadania/piaskownica'; return; }
+    const out = $('.out', w);
+    out.innerHTML = ENGINE_LOADING;
+    try { await loadEngine(); } catch (err) { out.innerHTML = ENGINE_FAIL; return; }
+    try { const { res, viaCheck } = execSql(w._db, w._sql); out.innerHTML = tableHtml(res, { caption: viaCheck ? 'zawartość widoku' : '' }); }
+    catch (err) { out.innerHTML = `<div class="fb bad"><strong>Błąd SQL</strong>${esc(plErr(err.message, w._sql))}</div>`; }
+  });
+  const seg = $('#th-seg');
+  const setSeg = k => { $$('button', seg).forEach(b => b.setAttribute('aria-pressed', b.dataset.seg === k)); $$('#v-teoria [data-pane]').forEach(p => p.hidden = p.dataset.pane !== k); store.s.th = k; store.save(); };
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setSeg(b.dataset.seg); });
+  setSeg(store.s.th || 'join');
+}
+
+/* ---------- LAB: join visualiser ---------- */
+const LL = [{ id_prac: 1, imie: 'Anna', id_zesp: 10 }, { id_prac: 2, imie: 'Piotr', id_zesp: 20 }, { id_prac: 3, imie: 'Ewa', id_zesp: 20 }, { id_prac: 4, imie: 'Marek', id_zesp: null }];
+const RR = [{ id_zesp: 10, nazwa: 'Bazy' }, { id_zesp: 20, nazwa: 'Sieci' }, { id_zesp: 30, nazwa: 'Grafika' }];
+const LAB = {
+  inner: { reg: ['AB'], kw: 'INNER JOIN', desc: 'Tylko pary. Marek (bez zespołu) i Grafika (bez ludzi) odpadają.' },
+  left: { reg: ['A', 'AB'], kw: 'LEFT JOIN', desc: 'Wszyscy pracownicy. Marek nie ma pary, więc kolumny zespołu dostają NULL.' },
+  right: { reg: ['B', 'AB'], kw: 'RIGHT JOIN', desc: 'Wszystkie zespoły. Grafika nie ma pracowników, więc kolumny pracownika to NULL.' },
+  full: { reg: ['A', 'AB', 'B'], kw: 'FULL OUTER JOIN', desc: 'Wszystko z obu stron: pary + Marek + Grafika. W MySQL nie ma FULL JOIN — robi się LEFT JOIN … UNION … RIGHT JOIN.' },
+  anti: { reg: ['A'], kw: 'LEFT JOIN', desc: 'LEFT JOIN, a potem tylko wiersze bez pary (NULL po prawej). Tak szukasz „kogoś bez czegoś” — zadanie 5.' }
+};
+function joinRows(m) {
+  const out = [], usedR = new Set();
+  LL.forEach((l, li) => {
+    const ms = RR.map((r, ri) => [r, ri]).filter(([r]) => l.id_zesp !== null && r.id_zesp === l.id_zesp);
+    ms.forEach(([, ri]) => { usedR.add(ri); if (m !== 'anti') out.push({ li, ri }); });
+    if (!ms.length && (m === 'left' || m === 'full' || m === 'anti')) out.push({ li, ri: null });
+  });
+  if (m === 'right' || m === 'full') RR.forEach((_, ri) => { if (!usedR.has(ri)) out.push({ li: null, ri }); });
+  return out;
+}
+function initLab() {
+  const seg = $('#lab-seg');
+  const cell = v => v === null ? '<td class="null">NULL</td>' : `<td>${esc(v)}</td>`;
+  const render = m => {
+    $$('button', seg).forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m));
+    const L = LAB[m];
+    $('.rA', $('#venn')).classList.toggle('on', L.reg.includes('A'));
+    $('.rB', $('#venn')).classList.toggle('on', L.reg.includes('B'));
+    $('.rAB', $('#venn')).classList.toggle('on', L.reg.includes('AB'));
+    $('#venn').setAttribute('aria-label', `Diagram: ${L.kw}. ${L.desc}`);
+    $('#lab-desc').textContent = L.desc;
+    $('#lab-sql').innerHTML = codeBlock(`SELECT p.imie, p.id_zesp, z.id_zesp, z.nazwa\nFROM pracownicy p\n${L.kw} zespoly z ON p.id_zesp = z.id_zesp` + (m === 'anti' ? '\nWHERE z.id_zesp IS NULL;' : ';'));
+    const rows = joinRows(m);
+    const inL = new Set(rows.map(r => r.li)), inR = new Set(rows.map(r => r.ri));
+    const pairedL = new Set(rows.filter(r => r.ri !== null).map(r => r.li)), pairedR = new Set(rows.filter(r => r.li !== null).map(r => r.ri));
+    const src = (data, cols, side, inSet, paired) => `<div class="tbl"><table><thead><tr>${cols.map(c => `<th class="${side}">${c}</th>`).join('')}</tr></thead><tbody>${data.map((d, i) =>
+      `<tr data-${side}="${i}" class="${inSet.has(i) ? '' : 'out'}">${cols.map((c, k) => d[c] === null ? '<td class="null">NULL</td>' : `<td>${esc(d[c])}${k === cols.length - 1 && inSet.has(i) && !paired.has(i) ? '<span class="tag">bez pary</span>' : ''}${k === cols.length - 1 && !inSet.has(i) ? '<span class="tag">pominięty</span>' : ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    $('#lab-l').innerHTML = src(LL, ['id_prac', 'imie', 'id_zesp'], 'L', inL, pairedL);
+    $('#lab-r').innerHTML = src(RR, ['id_zesp', 'nazwa'], 'R', inR, pairedR);
+    $('#lab-res').innerHTML = `<div class="tbl click"><table><thead><tr><th class="L">p.imie</th><th class="L">p.id_zesp</th><th class="R">z.id_zesp</th><th class="R">z.nazwa</th></tr></thead><tbody>${rows.map(r => {
+      const l = r.li === null ? {} : LL[r.li], z = r.ri === null ? {} : RR[r.ri];
+      return `<tr tabindex="0" data-li="${r.li}" data-ri="${r.ri}">${cell(l.imie ?? null)}${cell(l.id_zesp ?? null)}${cell(z.id_zesp ?? null)}${cell(z.nazwa ?? null)}</tr>`;
+    }).join('')}</tbody></table></div><p class="meta">${rows.length} ${plural(rows.length, 'wiersz', 'wiersze', 'wierszy')}</p>`;
+    store.s.lab = m; store.save();
+  };
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (b) render(b.dataset.m); });
+  const hot = tr => {
+    $$('#v-lab tr.hot').forEach(x => x.classList.remove('hot'));
+    if (!tr) return;
+    tr.classList.add('hot');
+    const l = $(`#lab-l tr[data-L="${tr.dataset.li}"]`), r = $(`#lab-r tr[data-R="${tr.dataset.ri}"]`);
+    l && l.classList.add('hot'); r && r.classList.add('hot');
+  };
+  $('#lab-res').addEventListener('click', e => hot(e.target.closest('tbody tr')));
+  $('#lab-res').addEventListener('focusin', e => hot(e.target.closest('tbody tr')));
+  if (matchMedia('(hover:hover)').matches) $('#lab-res').addEventListener('mouseover', e => hot(e.target.closest('tbody tr')));
+  render(store.s.lab || 'left');
+  initStepper();
+}
+
+/* ---------- LAB: subquery stepper ---------- */
+const STEPS = [
+  { name: 'Średnia', title: 'Kto zarabia więcej niż średnia firmy?', steps: [
+    { t: 'Najpierw wykonuje się podzapytanie. Zwraca jedną liczbę.', sql: 'SELECT AVG(placa_pod) FROM pracownicy;' },
+    { t: 'Ta liczba trafia w miejsce nawiasu, a zewnętrzne zapytanie filtruje pracowników.', sql: 'SELECT imie, nazwisko, placa_pod\nFROM pracownicy\nWHERE placa_pod > (SELECT AVG(placa_pod) FROM pracownicy);' }] },
+  { name: 'IN', title: 'Pracownicy zespołów z adresu Piotrowo 3', steps: [
+    { t: 'Podzapytanie zwraca listę numerów zespołów.', sql: "SELECT id_zesp FROM zespoly WHERE adres = 'Piotrowo 3';" },
+    { t: 'IN sprawdza, czy id_zesp pracownika jest na tej liście.', sql: "SELECT imie, nazwisko, id_zesp\nFROM pracownicy\nWHERE id_zesp IN (SELECT id_zesp FROM zespoly\n                  WHERE adres = 'Piotrowo 3');" }] },
+  { name: 'Korelacja', title: 'Kto zarabia więcej niż średnia w swoim zespole?', steps: [
+    { t: 'Podzapytanie zależy od wiersza (p.id_zesp), więc dla każdego zespołu daje inną wartość. Oto te średnie:', sql: 'SELECT id_zesp, ROUND(AVG(placa_pod), 2) AS srednia_zespolu\nFROM pracownicy\nGROUP BY id_zesp;' },
+    { t: 'Każdy pracownik jest porównywany ze średnią swojego zespołu.', sql: 'SELECT p.imie, p.nazwisko, p.id_zesp, p.placa_pod\nFROM pracownicy p\nWHERE p.placa_pod > (SELECT AVG(x.placa_pod)\n                     FROM pracownicy x\n                     WHERE x.id_zesp = p.id_zesp);' }] },
+  { name: 'EXISTS', title: 'Zespoły bez pracowników', steps: [
+    { t: 'Dla każdego zespołu podzapytanie szuka jego pracowników. Dla zespołu 50 nie znajduje nikogo:', sql: 'SELECT 1 FROM pracownicy p WHERE p.id_zesp = 50;' },
+    { t: 'Pusty wynik oznacza, że NOT EXISTS jest prawdą, więc zespół trafia do wyniku.', sql: 'SELECT z.id_zesp, z.nazwa\nFROM zespoly z\nWHERE NOT EXISTS (SELECT 1 FROM pracownicy p\n                  WHERE p.id_zesp = z.id_zesp);' }] }
+];
+function initStepper() {
+  const seg = $('#step-seg'), body = $('#step-body');
+  seg.innerHTML = STEPS.map((s, i) => `<button data-i="${i}">${s.name}</button>`).join('');
+  let cur = 0, shown = 1;
+  const render = async () => {
+    $$('button', seg).forEach(b => b.setAttribute('aria-pressed', +b.dataset.i === cur));
+    const ex = STEPS[cur];
+    body.innerHTML = `<h3 class="h3">${ex.title}</h3>` + ex.steps.slice(0, shown).map((s, i) =>
+      `<div class="step"><p class="eyebrow">Krok ${i + 1} z ${ex.steps.length}</p><p>${s.t}</p>${codeBlock(s.sql)}<div data-out="${i}">${ENGINE_LOADING}</div></div>`).join('') +
+      (shown < ex.steps.length ? '<button class="btn tint" id="step-next">Następny krok</button>' : '<button class="btn gray" id="step-reset">Od początku</button>');
+    try { await loadEngine(); } catch (e) { $$('[data-out]', body).forEach(o => o.innerHTML = ENGINE_FAIL); return; }
+    ex.steps.slice(0, shown).forEach((s, i) => { const o = $(`[data-out="${i}"]`, body); if (o) o.innerHTML = tableHtml(execSql('zespoly', s.sql).res); });
+  };
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { cur = +b.dataset.i; shown = 1; render(); } });
+  body.addEventListener('click', e => {
+    if (e.target.id === 'step-next') { shown++; render(); }
+    if (e.target.id === 'step-reset') { shown = 1; render(); }
+  });
+  render();
+}
+
+/* ---------- ZADANIA ---------- */
+let pending = null;
+const KEYS = ['SELECT', '*', 'FROM', 'WHERE', 'JOIN', 'LEFT JOIN', 'ON', '=', 'AND', 'OR', 'IN', 'NOT IN', 'EXISTS', 'NOT EXISTS', 'IS NULL', 'IS NOT NULL', 'LIKE', "'%'", 'GROUP BY', 'HAVING', 'ORDER BY', 'DESC', 'DISTINCT', 'COUNT(', 'SUM(', 'AVG(', 'MAX(', 'MIN(', '(', ')', ',', '>', '<', '>=', 'AS', 'CREATE VIEW', ';'];
+const taskLabel = t => t.n ? `${t.n}. ${t.title}` : t.title;
+function renderTaskList() {
+  $('#task-detail').hidden = true;
+  const L = $('#task-list'); L.hidden = false;
+  const done = TASKS.filter(t => store.s.solved[t.id]).length;
+  let h = `<header class="lt"><h1>Zadania</h1><p>Pisz zapytania, uruchamiaj je i sprawdzaj automatycznie.</p></header>
+    <div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><b>Rozwiązane</b><span class="muted">${done} z ${TASKS.length}</span></div><div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="${TASKS.length}" aria-valuenow="${done}"><i style="width:${done / TASKS.length * 100}%"></i></div></div>
+    <div class="list"><button class="row" data-open="piaskownica"><span class="st" aria-hidden="true">›_</span><span class="t"><b>Piaskownica</b><span>dowolne zapytania · obie bazy</span></span><span class="chev" aria-hidden="true">›</span></button></div>`;
+  for (const g in GROUPS) {
+    h += `<p class="list-h">${GROUPS[g]}</p><div class="list">` + TASKS.filter(t => t.g === g).map(t => {
+      const ok = !!store.s.solved[t.id];
+      return `<button class="row" data-open="${t.id}"><span class="st ${ok ? 'done' : ''}" aria-label="${ok ? 'rozwiązane' : 'nierozwiązane'}">${ok ? '✓' : ''}</span><span class="t"><b>${esc(taskLabel(t))}</b><span>${esc(t.clause)}</span></span><span class="chev" aria-hidden="true">›</span></button>`;
+    }).join('') + '</div>';
+  }
+  h += '<div class="btn-row" style="margin-top:24px"><button class="btn gray" id="reset-progress">Wyzeruj postęp</button></div>';
+  L.innerHTML = h;
+}
+function renderTask(id) {
+  const sandbox = id === 'piaskownica';
+  const t = sandbox ? null : TASKS.find(x => x.id === id);
+  if (!sandbox && !t) return renderTaskList();
+  $('#task-list').hidden = true;
+  const D = $('#task-detail'); D.hidden = false;
+  let db = sandbox ? (pending && pending.db) || store.s.sbdb || 'zespoly' : t.db;
+  const key = () => sandbox ? 'sb_' + db : t.id;
+  const initial = pending ? pending.sql : (store.s.drafts[key()] || '');
+  pending = null;
+  const idx = sandbox ? -1 : TASKS.indexOf(t);
+  const prev = TASKS[idx - 1], next = TASKS[idx + 1];
+  D.innerHTML = `<button class="back" data-go="list">‹ Zadania</button>
+    <header class="lt" style="padding-top:8px">${sandbox ? '<h1>Piaskownica</h1><p>Pisz, co chcesz. Każde uruchomienie startuje na świeżej kopii bazy, więc niczego nie zepsujesz.</p>' :
+      `<p class="eyebrow">${GROUPS[t.g]}${t.n ? ' · zadanie ' + t.n : ''}</p><h1 style="font-size:1.75rem">${esc(t.title)}</h1>`}</header>
+    ${sandbox ? `<div class="seg" role="group" aria-label="Baza danych" id="sb-db"><button data-db="zespoly">Baza zespoly</button><button data-db="biblioteka">Baza biblioteka</button></div>` : `<div class="card"><p class="task-text" style="margin:0">${t.text}</p></div>`}
+    <details class="plain"><summary>Schemat bazy <span class="foot" style="font-weight:400">— dotknij, by wstawić</span></summary><div class="body" id="schema"></div></details>
+    <div class="editor"><div class="kbar" aria-label="Wstaw słowo kluczowe">${KEYS.map(k => `<button class="chip" data-ins="${esc(k)}">${esc(k)}</button>`).join('')}</div>
+      <textarea class="sql-in" id="sql" aria-label="Zapytanie SQL" placeholder="SELECT …" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"></textarea></div>
+    <div class="btn-row">${sandbox ? '<button class="btn" id="run">Uruchom</button>' : '<button class="btn tint" id="run">Uruchom</button><button class="btn" id="check">Sprawdź</button>'}</div>
+    <div class="btn-row"><button class="btn sm gray" id="clear">Wyczyść</button></div>
+    <div id="fb" aria-live="polite"></div>
+    <div id="out"></div>
+    ${sandbox ? '' : `<details class="plain"><summary>Podpowiedź</summary><div class="body"><p style="margin:0">${t.hint}</p></div></details>
+    <details class="plain" id="sol"><summary>Rozwiązanie</summary><div class="body">${codeBlock(t.sol)}<p><b>Klauzula:</b> <code>${esc(t.clause)}</code></p><button class="btn sm tint" id="use-sol">Wstaw do edytora</button></div></details>
+    <div class="pager">${prev ? `<button class="btn sm gray" data-open="${prev.id}">‹ Poprzednie</button>` : '<span></span>'}${next ? `<button class="btn sm gray" data-open="${next.id}">Następne ›</button>` : ''}</div>`}`;
+  const ta = $('#sql'), fb = $('#fb'), out = $('#out');
+  ta.value = initial;
+  const drawSchema = () => {
+    $('#schema').innerHTML = SCHEMA[db].map(tb => `<div class="chips"><button class="chip tn" data-ins="${tb.t}">${tb.t}</button>${tb.cols.map(c => `<button class="chip" data-ins="${c}">${c}</button>`).join('')}</div>`).join('');
+  };
+  drawSchema();
+  if (sandbox) {
+    const s = $('#sb-db');
+    const setDb = d => { store.s.drafts[key()] = ta.value; db = d; store.s.sbdb = d; store.save(); $$('button', s).forEach(b => b.setAttribute('aria-pressed', b.dataset.db === d)); ta.value = store.s.drafts[key()] || ''; drawSchema(); fb.innerHTML = out.innerHTML = ''; };
+    $$('button', s).forEach(b => b.setAttribute('aria-pressed', b.dataset.db === db));
+    s.addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.dataset.db !== db) setDb(b.dataset.db); });
+    if (initial) { store.s.drafts[key()] = initial; store.save(); }
+  }
+  ta.addEventListener('input', () => { store.s.drafts[key()] = ta.value; store.save(); });
+  D.querySelectorAll('.kbar, #schema').forEach(el => {
+    el.addEventListener('mousedown', e => e.preventDefault()); // keep focus in the editor on desktop
+    el.addEventListener('click', e => {
+      const b = e.target.closest('[data-ins]'); if (!b) return;
+      const k = b.dataset.ins, s = ta.selectionStart, v = ta.value;
+      const pre = s > 0 && !/[\s(]/.test(v[s - 1]) && !/^[),;]/.test(k) ? ' ' : '';
+      const post = /\($/.test(k) || k === '(' ? '' : ' ';
+      ta.setRangeText(pre + k + post, s, ta.selectionEnd, 'end');
+      ta.dispatchEvent(new Event('input')); ta.focus();
+    });
+  });
+  const ready = async () => {
+    fb.innerHTML = ENGINE_LOADING;
+    try { await loadEngine(); fb.innerHTML = ''; return true; } catch (e) { fb.innerHTML = ENGINE_FAIL; return false; }
+  };
+  const sqlErr = err => `<div class="fb bad"><strong>Błąd SQL</strong>${esc(plErr(err.message, ta.value))}</div>`;
+  $('#run').addEventListener('click', async () => {
+    if (!ta.value.trim()) { fb.innerHTML = '<div class="fb info">Najpierw wpisz zapytanie.</div>'; return; }
+    if (!(await ready())) return;
+    try { const { res, viaCheck } = execSql(db, ta.value, t && t.check); out.innerHTML = tableHtml(res, { caption: viaCheck ? 'zawartość widoku zad7' : '' }); }
+    catch (err) { out.innerHTML = ''; fb.innerHTML = sqlErr(err); }
+  });
+  const chk = $('#check');
+  chk && chk.addEventListener('click', async () => {
+    if (!ta.value.trim()) { fb.innerHTML = '<div class="fb info">Najpierw wpisz zapytanie.</div>'; return; }
+    if (!(await ready())) return;
+    let r;
+    try { r = gradeTask(t, ta.value); } catch (err) { out.innerHTML = ''; fb.innerHTML = sqlErr(err); return; }
+    const { g, usr, shown } = r;
+    if (g.ok) {
+      store.s.solved[t.id] = 1; store.save();
+      fb.innerHTML = `<div class="fb ok"><strong>✓ Dobrze! Wynik zgadza się z oczekiwanym.</strong>${g.note ? esc(g.note) + '<br>' : ''}Klauzula na sprawdzian: <code>${esc(t.clause)}</code></div>`;
+    } else {
+      fb.innerHTML = `<div class="fb ${g.soft ? 'info' : 'bad'}"><strong>${g.soft ? 'Prawie' : '✗ Jeszcze nie'}</strong>${esc(g.msg)}${g.soft ? '' : `<details><summary>Pokaż oczekiwany wynik</summary><div style="margin-top:8px">${tableHtml(shown)}</div></details>`}</div>`;
+    }
+    out.innerHTML = '<p class="cap">Twój wynik</p>' + tableHtml(usr);
+  });
+  $('#clear').addEventListener('click', () => { ta.value = ''; ta.dispatchEvent(new Event('input')); fb.innerHTML = out.innerHTML = ''; ta.focus(); });
+  ta.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); (e.shiftKey && chk ? chk : $('#run')).click(); } });
+  const use = $('#use-sol');
+  use && use.addEventListener('click', () => { ta.value = t.sol; ta.dispatchEvent(new Event('input')); ta.scrollIntoView({ block: 'center' }); });
+}
+function initTasks() {
+  $('#v-zadania').addEventListener('click', e => {
+    const o = e.target.closest('[data-open]');
+    if (o) { location.hash = '#zadania/' + o.dataset.open; return; }
+    if (e.target.closest('[data-go="list"]')) { location.hash = '#zadania'; return; }
+    if (e.target.id === 'reset-progress' && confirm('Usunąć postęp zadań i zapisane zapytania? Tego nie da się cofnąć.')) {
+      store.s.solved = {}; store.s.drafts = {}; store.save(); renderTaskList();
+    }
+  });
+}
+
+/* ---------- QUIZ ---------- */
+const QUIZ = [
+  { t: 'j', q: 'Co zwraca INNER JOIN?', o: ['Tylko wiersze, które mają parę w obu tabelach', 'Wszystkie wiersze z lewej tabeli', 'Wszystkie wiersze z obu tabel', 'Każdy wiersz z każdym'], a: 0, why: 'INNER JOIN zostawia wyłącznie pary spełniające warunek ON.' },
+  { t: 'j', q: 'Tabela A ma 5 wierszy, B ma 3. Ile wierszy da A CROSS JOIN B?', o: ['15', '8', '5', '3'], a: 0, why: 'Iloczyn kartezjański: 5 × 3 = 15.' },
+  { t: 'j', q: 'Robisz zespoly LEFT JOIN pracownicy. Co pojawi się w kolumnach pracownika dla zespołu bez ludzi?', o: ['NULL', '0', 'Pusty tekst', 'Zespół zostanie pominięty'], a: 0, why: 'LEFT JOIN zachowuje wiersz z lewej, a brakujące kolumny z prawej wypełnia NULL-em.' },
+  { t: 'j', q: 'Jak znaleźć zespoły, w których nie ma żadnego pracownika, łącząc tabele?', o: ['LEFT JOIN … WHERE p.id_prac IS NULL', 'INNER JOIN … WHERE p.id_prac = NULL', 'RIGHT JOIN … WHERE z.id_zesp IS NOT NULL', 'CROSS JOIN … WHERE p.id_prac IS NULL'], a: 0, why: 'Anti-join: LEFT JOIN zostawia wszystkie zespoły, IS NULL wybiera te bez pary. „= NULL” nigdy nie działa.' },
+  { t: 'j', q: 'Dlaczego to zapytanie zgłasza błąd?', code: 'SELECT nazwisko, nazwa\nFROM pracownicy p\nJOIN zespoly z ON p.id_zesp = z.id_zesp\nWHERE id_zesp = 20;', o: ['Kolumna id_zesp jest w obu tabelach — brakuje aliasu', 'Brakuje GROUP BY', 'JOIN musi być zapisany jako INNER JOIN', 'Nazwa zespołu musi być w cudzysłowie'], a: 0, why: 'Niejednoznaczna kolumna: trzeba napisać p.id_zesp albo z.id_zesp.' },
+  { t: 'j', q: 'Jak zrobić FULL OUTER JOIN w MySQL?', o: ['LEFT JOIN … UNION … RIGHT JOIN', 'Napisać FULL JOIN', 'Napisać OUTER JOIN', 'Użyć CROSS JOIN'], a: 0, why: 'MySQL nie ma FULL JOIN. Suma LEFT i RIGHT przez UNION daje to samo.' },
+  { t: 'j', q: 'Czym jest self-join?', o: ['Złączeniem tabeli z samą sobą, np. pracownik i jego szef', 'Złączeniem bez warunku ON', 'Złączeniem widoku z tabelą', 'Podzapytaniem w SELECT'], a: 0, why: 'Ta sama tabela występuje dwa razy z różnymi aliasami (p i s).' },
+  { t: 'j', q: 'Zapytanie z LEFT JOIN ma warunek na kolumnie prawej tabeli w WHERE (np. WHERE p.etat = \'ASYSTENT\'). Co się dzieje?', o: ['Wiersze z NULL odpadają — działa jak INNER JOIN', 'Nic, LEFT JOIN dalej pokazuje wszystko z lewej', 'Pojawia się błąd składni', 'Wynik staje się iloczynem kartezjańskim'], a: 0, why: 'NULL = \'ASYSTENT\' nie jest prawdą, więc wiersze bez pary znikają. Warunek trzeba przenieść do ON.' },
+  { t: 'j', q: 'Kategoria nie ma żadnej książki. Co pokażą COUNT(*) i COUNT(k.id_ksiazki) po kategoria LEFT JOIN ksiazka?', o: ['COUNT(*) = 1, COUNT(k.id_ksiazki) = 0', 'Oba 0', 'Oba 1', 'COUNT(*) = 0, COUNT(k.id_ksiazki) = 1'], a: 0, why: 'COUNT(*) liczy wiersz z NULL-ami, COUNT(kolumna) pomija NULL.' },
+  { t: 'j', q: 'Ile JOIN-ów potrzeba, by połączyć czytelnik, zamowienie i ksiazka?', o: ['2', '1', '3', '0'], a: 0, why: 'Na n tabel potrzeba n − 1 złączeń.' },
+  { t: 'j', q: 'Ile wierszy zwróci zespoly LEFT JOIN pracownicy, jeśli są 3 zespoły: jeden pusty, a dwa mają po 2 pracowników?', o: ['5', '4', '6', '3'], a: 0, why: '2 + 2 pary + 1 wiersz pustego zespołu z NULL = 5.' },
+  { t: 's', q: 'Co zwraca podzapytanie skalarne?', o: ['Jedną wartość (1 wiersz, 1 kolumna)', 'Jedną kolumnę wielu wierszy', 'Całą tabelę', 'Prawdę albo fałsz'], a: 0, why: 'Skalarne podzapytanie można postawić po =, > lub <.' },
+  { t: 's', q: 'W MySQL: WHERE placa_pod = (SELECT placa_pod FROM pracownicy WHERE id_zesp = 20). Zespół 20 ma 6 osób. Co się stanie?', o: ['Błąd „Subquery returns more than 1 row” — trzeba użyć IN', 'Zwróci osoby z największą płacą', 'Porówna tylko z pierwszą osobą', 'Zwróci pusty wynik'], a: 0, why: 'Po = może stać tylko jedna wartość. Dla listy użyj IN.' },
+  { t: 's', q: 'Podzapytanie w NOT IN zwraca listę, na której jest NULL. Jaki będzie wynik?', o: ['Pusty', 'NULL jest ignorowany', 'Błąd', 'Wszystkie wiersze'], a: 0, why: 'x NOT IN (…, NULL) nigdy nie jest prawdą. Dopisz IS NOT NULL albo użyj NOT EXISTS.' },
+  { t: 's', q: 'Czym wyróżnia się podzapytanie skorelowane?', o: ['Odwołuje się do kolumny zapytania zewnętrznego i liczy się dla każdego wiersza', 'Zawsze stoi w FROM', 'Zawiera JOIN', 'Zwraca kilka kolumn'], a: 0, why: 'Np. WHERE x.id_zesp = p.id_zesp — wartość zależy od bieżącego wiersza p.' },
+  { t: 's', q: 'Kiedy EXISTS (podzapytanie) jest prawdą?', o: ['Gdy podzapytanie zwróci co najmniej jeden wiersz', 'Gdy podzapytanie zwróci wartość większą od 0', 'Gdy podzapytanie nie zawiera NULL', 'Gdy podzapytanie zwróci dokładnie jeden wiersz'], a: 0, why: 'EXISTS sprawdza tylko, czy są jakiekolwiek wiersze.' },
+  { t: 's', q: 'Czego wymaga MySQL od podzapytania w FROM?', o: ['Aliasu, np. AS t', 'ORDER BY', 'LIMIT', 'GROUP BY'], a: 0, why: 'Tabela pochodna musi mieć nazwę: FROM (SELECT …) AS t.' },
+  { t: 's', q: 'Dlaczego WHERE placa_pod > AVG(placa_pod) nie działa?', o: ['Funkcji agregujących nie wolno używać w WHERE — trzeba podzapytania', 'AVG działa tylko z GROUP BY', 'Trzeba napisać AVERAGE', 'Działa, tylko jest wolne'], a: 0, why: 'WHERE ocenia pojedyncze wiersze. Poprawnie: WHERE placa_pod > (SELECT AVG(placa_pod) FROM pracownicy).' },
+  { t: 's', q: 'Które zapytanie znaczy to samo co placa_pod > ALL (SELECT placa_pod … WHERE id_zesp = 30)?', o: ['placa_pod > (SELECT MAX(placa_pod) … WHERE id_zesp = 30)', 'placa_pod > (SELECT MIN(placa_pod) … )', 'placa_pod = (SELECT MAX(placa_pod) … )', 'placa_pod IN (SELECT placa_pod … )'], a: 0, why: 'Większe od wszystkich = większe od największego.' },
+  { t: 's', q: 'W którym miejscu podzapytanie zwraca „tabelę pochodną”?', o: ['W FROM', 'W WHERE', 'W SELECT', 'W ORDER BY'], a: 0, why: 'W FROM wynik podzapytania jest traktowany jak tabela.' },
+  { t: 's', q: 'Czym jest widok (VIEW)?', o: ['Zapisanym zapytaniem, którego używa się jak tabeli', 'Kopią danych tabeli', 'Indeksem przyspieszającym zapytania', 'Kopią zapasową bazy'], a: 0, why: 'Widok nie przechowuje danych — przy każdym użyciu wykonuje zapytanie od nowa.' },
+  { t: 'o', q: 'Czym różni się WHERE od HAVING?', o: ['WHERE filtruje wiersze przed grupowaniem, HAVING filtruje grupy po grupowaniu', 'Niczym, to synonimy', 'HAVING działa tylko z JOIN', 'WHERE działa tylko z liczbami'], a: 0, why: 'Dlatego warunki z COUNT, SUM, AVG idą do HAVING.' },
+  { t: 'o', q: 'Dlaczego alias kolumny z SELECT nie działa w WHERE?', o: ['WHERE wykonuje się przed SELECT', 'Aliasy działają tylko w ORDER BY z DESC', 'Alias musi być w cudzysłowie', 'Działa zawsze'], a: 0, why: 'Kolejność wykonania: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY.' },
+  { t: 'o', kind: 'order', q: 'Ułóż klauzule w kolejności, w jakiej się je pisze.', items: ['SELECT', 'FROM', 'JOIN … ON', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY'], why: 'SELECT → FROM → JOIN → WHERE → GROUP BY → HAVING → ORDER BY.' },
+  { t: 'o', kind: 'order', q: 'Ułóż w kolejności, w jakiej baza wykonuje zapytanie.', items: ['FROM + JOIN', 'WHERE', 'GROUP BY', 'HAVING', 'SELECT', 'ORDER BY'], why: 'Najpierw dane (FROM), na końcu sortowanie.' }
+];
+const TOPICS = { all: 'Wszystko', j: 'JOIN', s: 'Podzapytania', o: 'Ogólne' };
+const Q = { topic: 'all', list: [], i: 0, score: 0, wrong: [] };
+function quizHome() {
+  const best = store.s.quiz;
+  $('#quiz').innerHTML = `<div class="card"><h2 class="h3">Wybierz temat</h2>
+    <div class="seg" role="group" aria-label="Temat quizu" id="qz-seg">${Object.entries(TOPICS).map(([k, v]) => `<button data-t="${k}" aria-pressed="${k === Q.topic}">${v}</button>`).join('')}</div>
+    <p class="muted" id="qz-info"></p><button class="btn" id="qz-start" style="width:100%">Zacznij quiz</button></div>`;
+  const info = () => {
+    const n = QUIZ.filter(x => Q.topic === 'all' || x.t === Q.topic).length;
+    $('#qz-info').textContent = `${n} ${plural(n, 'pytanie', 'pytania', 'pytań')} w losowej kolejności.` + (best[Q.topic] != null ? ` Twój najlepszy wynik: ${best[Q.topic]}%.` : '');
+  };
+  info();
+  $('#qz-seg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; Q.topic = b.dataset.t; $$('#qz-seg button').forEach(x => x.setAttribute('aria-pressed', x === b)); info(); });
+  $('#qz-start').addEventListener('click', () => quizStart(QUIZ.filter(x => Q.topic === 'all' || x.t === Q.topic)));
+}
+function quizStart(list) { Q.list = shuffle(list); Q.i = 0; Q.score = 0; Q.wrong = []; quizQuestion(); }
+function quizQuestion() {
+  const x = Q.list[Q.i], n = Q.list.length;
+  const head = `<div class="card"><div class="qmeta"><span>Pytanie ${Q.i + 1} z ${n} · ${TOPICS[x.t]}</span><span>${Q.score} ${plural(Q.score, 'punkt', 'punkty', 'punktów')}</span></div>
+    <div class="pbar"><i style="width:${Q.i / n * 100}%"></i></div><h2 class="qtext">${esc(x.q)}</h2>${x.code ? codeBlock(x.code) : ''}`;
+  const foot = '<div id="qfb" aria-live="polite"></div><button class="btn" id="qnext" hidden style="width:100%">Dalej</button></div>';
+  const done = ok => {
+    if (ok) Q.score++; else Q.wrong.push(x);
+    $('#qfb').innerHTML = `<div class="fb ${ok ? 'ok' : 'bad'}"><strong>${ok ? '✓ Dobrze!' : '✗ Nie tym razem'}</strong>${esc(x.why)}</div>`;
+    const nx = $('#qnext'); nx.hidden = false; nx.textContent = Q.i + 1 < n ? 'Dalej' : 'Zobacz wynik'; nx.focus();
+  };
+  if (x.kind === 'order') {
+    $('#quiz').innerHTML = head + '<div class="ans" id="ans"></div><div class="pool" id="pool"></div><div class="btn-row"><button class="btn tint" id="qcheck" disabled>Sprawdź kolejność</button><button class="btn gray" id="qundo">Cofnij</button></div>' + foot;
+    let pool = shuffle(x.items), ans = [];
+    const draw = () => {
+      $('#ans').innerHTML = ans.map((it, i) => `<button class="chip" data-a="${i}">${i + 1}. ${esc(it)}</button>`).join('');
+      $('#pool').innerHTML = pool.map((it, i) => `<button class="chip" data-p="${i}">${esc(it)}</button>`).join('');
+      $('#qcheck').disabled = pool.length > 0;
+    };
+    draw();
+    $('#pool').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (!b) return; ans.push(pool.splice(+b.dataset.p, 1)[0]); draw(); });
+    $('#ans').addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (!b || $('#qcheck').dataset.done) return; pool.push(ans.splice(+b.dataset.a, 1)[0]); draw(); });
+    $('#qundo').addEventListener('click', () => { if (ans.length && !$('#qcheck').dataset.done) { pool.push(ans.pop()); draw(); } });
+    $('#qcheck').addEventListener('click', () => {
+      const btn = $('#qcheck'); btn.dataset.done = 1; btn.disabled = true; $('#qundo').disabled = true;
+      const ok = ans.every((it, i) => it === x.items[i]);
+      done(ok);
+      if (!ok) $('#qfb').insertAdjacentHTML('beforeend', `<div class="fb info"><strong>Poprawna kolejność</strong>${x.items.map((it, i) => `${i + 1}. ${esc(it)}`).join(' → ')}</div>`);
+    });
+  } else {
+    const opts = shuffle(x.o.map((txt, i) => ({ txt, ok: i === x.a })));
+    $('#quiz').innerHTML = head + `<div class="opts">${opts.map((o, i) => `<button class="opt" data-i="${i}"><span class="mk" aria-hidden="true">${'ABCD'[i]}</span><span>${esc(o.txt)}</span></button>`).join('')}</div>` + foot;
+    $('.opts').addEventListener('click', e => {
+      const b = e.target.closest('.opt'); if (!b || b.disabled) return;
+      const pick = opts[+b.dataset.i];
+      $$('.opt').forEach((el, i) => {
+        el.disabled = true;
+        if (opts[i].ok) { el.classList.add('right'); el.querySelector('.mk').textContent = '✓'; el.setAttribute('aria-label', 'Poprawna odpowiedź: ' + opts[i].txt); }
+        else if (el === b) { el.classList.add('wrong'); el.querySelector('.mk').textContent = '✗'; el.setAttribute('aria-label', 'Twoja odpowiedź, błędna: ' + opts[i].txt); }
+      });
+      done(pick.ok);
+    });
+  }
+  $('#qnext').addEventListener('click', () => { Q.i++; Q.i < n ? quizQuestion() : quizEnd(); window.scrollTo({ top: 0 }); });
+}
+function quizEnd() {
+  const n = Q.list.length, pct = Math.round(Q.score / n * 100);
+  if (store.s.quiz[Q.topic] == null || pct > store.s.quiz[Q.topic]) { store.s.quiz[Q.topic] = pct; store.save(); }
+  const msg = pct === 100 ? 'Komplet. Jesteś gotowy na sprawdzian.' : pct >= 75 ? 'Dobrze. Powtórz błędne pytania i będzie komplet.' : pct >= 50 ? 'Połowa za Tobą. Zajrzyj do Teorii przy tematach, które nie wyszły.' : 'Wróć do Teorii i Labu, a potem spróbuj jeszcze raz.';
+  $('#quiz').innerHTML = `<div class="card" style="text-align:center"><p class="eyebrow">Wynik · ${TOPICS[Q.topic]}</p><p class="big">${Q.score}/${n}</p><p class="muted">${pct}% · ${msg}</p></div>
+    ${Q.wrong.length ? `<p class="list-h">Do powtórki</p><div class="card">${Q.wrong.map(w => `<p><b>${esc(w.q)}</b><br><span class="muted">${esc(w.why)}</span></p>`).join('')}</div>` : ''}
+    <div class="btn-row">${Q.wrong.length ? `<button class="btn" id="qz-wrong">Powtórz błędne (${Q.wrong.length})</button>` : ''}<button class="btn tint" id="qz-again">Jeszcze raz</button></div>
+    <div class="btn-row"><button class="btn gray" id="qz-home">Zmień temat</button></div>`;
+  const wrong = Q.wrong.slice();
+  $('#qz-wrong') && $('#qz-wrong').addEventListener('click', () => quizStart(wrong));
+  $('#qz-again').addEventListener('click', () => quizStart(QUIZ.filter(x => Q.topic === 'all' || x.t === Q.topic)));
+  $('#qz-home').addEventListener('click', quizHome);
+}
+
+/* ---------- ŚCIĄGA ---------- */
+function initCheat() {
+  $('#cheat-tasks').innerHTML = ['spr', 'bib'].map(g => `<p class="list-h">${GROUPS[g]}</p><div class="list">` + TASKS.filter(t => t.g === g).map(t =>
+    `<button class="row" data-open="${t.id}"><span class="st" aria-hidden="true">${t.n}</span><span class="t"><b>${esc(t.title)}</b><span>${esc(t.clause)}</span></span><span class="chev" aria-hidden="true">›</span></button>`).join('') + '</div>').join('');
+  $('#cheat-tasks').addEventListener('click', e => { const o = e.target.closest('[data-open]'); if (o) location.hash = '#zadania/' + o.dataset.open; });
+}
+
+/* ---------- router ---------- */
+const TABS = ['teoria', 'lab', 'zadania', 'quiz', 'sciaga'];
+let lastTab = null;
+function route() {
+  let [tab, sub] = location.hash.slice(1).split('/');
+  if (!TABS.includes(tab)) tab = 'teoria';
+  $$('.view').forEach(v => v.hidden = v.id !== 'v-' + tab);
+  $$('.tabbar button').forEach(b => b.dataset.tab === tab ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
+  if (tab === 'zadania') sub ? renderTask(sub) : renderTaskList();
+  if (tab === 'quiz' && lastTab !== 'quiz' && !$('#quiz').innerHTML) quizHome();
+  if (tab !== lastTab || tab === 'zadania') window.scrollTo({ top: 0 });
+  lastTab = tab;
+}
+$('.tabbar').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) location.hash = '#' + b.dataset.tab; });
+window.addEventListener('hashchange', route);
+initTheory(); initLab(); initTasks(); initCheat(); route();
+// warm up the engine in the background so the first "Uruchom" is instant
+(window.requestIdleCallback || (f => setTimeout(f, 800)))(() => loadEngine().catch(() => {}));
+</script>
+</body>
+</html>
